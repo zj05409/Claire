@@ -3,76 +3,73 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>小澄立刻行动器</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="Claire 的个人作品与阅读记录">
+  <title>Claire 的小宇宙</title>
+  <link rel="stylesheet" href="site.css">
 </head>
 <body>
-  <main class="app">
-    <header>
-      <p class="eyebrow">决定了，就迈出第一步</p>
-      <h1>小澄立刻行动器</h1>
-      <p class="intro">一次只做一件事。不要等“想做了”才开始，先做两分钟。</p>
-    </header>
+  <header class="topbar">
+    <a class="brand" href="#home">Claire's Universe</a>
+    <button id="menu-button" aria-label="打开导航">菜单</button>
+    <nav id="nav">
+      <a href="#about">简介</a>
+      <a href="#compositions">作文</a>
+      <a href="#artworks">画作</a>
+      <a href="#projects">编程</a>
+      <a href="#books">书籍</a>
+      <a href="#movies">电影</a>
+      <a href="#games">游戏</a>
+    </nav>
+  </header>
 
-    <section id="decide-screen" class="card screen active" aria-labelledby="decide-title">
-      <div class="step-label">第 1 步</div>
-      <h2 id="decide-title">你现在决定做什么？</h2>
-      <label for="task">只写一件具体的事</label>
-      <input id="task" maxlength="60" autocomplete="off" placeholder="例如：整理房间">
-
-      <label for="first-action">最小的第一步是什么？</label>
-      <input id="first-action" maxlength="80" autocomplete="off" placeholder="例如：把地上的书放回书架">
-      <p class="hint">第一步应该简单到两分钟内就能开始。</p>
-
-      <button id="decide-button" class="primary">我决定了，立刻开始</button>
-      <p id="form-message" class="message" role="alert"></p>
-    </section>
-
-    <section id="launch-screen" class="card screen" aria-labelledby="launch-title">
-      <div class="step-label">第 2 步</div>
-      <h2 id="launch-title">现在离开屏幕，去做第一步</h2>
-      <p class="task-line">要做：<strong id="launch-task"></strong></p>
-      <p class="action-line">第一步：<strong id="launch-action"></strong></p>
-      <div id="countdown" class="countdown" aria-live="polite">5</div>
-      <p class="launch-note">倒计时结束后，马上站起来。先做两分钟就算成功开始。</p>
-      <button id="started-button" class="primary hidden">我已经开始了</button>
-    </section>
-
-    <section id="doing-screen" class="card screen" aria-labelledby="doing-title">
-      <div class="step-label">正在行动</div>
-      <h2 id="doing-title">很好，不用一次全部做完</h2>
-      <p class="task-line">正在做：<strong id="doing-task"></strong></p>
-      <div class="timer-wrap">
-        <span>已经行动</span>
-        <strong id="timer">00:00</strong>
-      </div>
-      <p class="hint center">完成第一步后，可以继续做；需要休息也没关系。</p>
-      <div class="button-row">
-        <button id="finish-button" class="primary">完成了</button>
-        <button id="pause-button" class="secondary">已经开始，稍后继续</button>
-      </div>
-    </section>
-
-    <section id="done-screen" class="card screen" aria-labelledby="done-title">
-      <div class="success-mark">✓</div>
-      <h2 id="done-title">你把决定变成了行动</h2>
-      <p id="done-summary" class="done-summary"></p>
-      <button id="new-button" class="primary">决定下一件事</button>
-    </section>
-
-    <section class="history card">
-      <div class="history-heading">
-        <div>
-          <p class="eyebrow">你的行动记录</p>
-          <h2>我确实开始过</h2>
+  <main>
+    <section id="home" class="hero">
+      <div class="hero-copy">
+        <p class="kicker">WELCOME TO MY UNIVERSE</p>
+        <h1>你好，我是 <span>Claire</span></h1>
+        <p>我喜欢阅读、思考、写作、画画和编程。这里收藏着我探索世界时留下的作品、故事与发现。</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#projects">看看我的作品</a>
+          <a class="button ghost" href="doit/">打开立刻行动器</a>
         </div>
-        <button id="clear-button" class="text-button">清空记录</button>
       </div>
-      <ul id="history-list"></ul>
-      <p id="empty-history" class="empty-history">完成第一次“立刻开始”后，记录会出现在这里。</p>
+      <div class="orbit" aria-hidden="true">
+        <div class="planet">C</div>
+        <span class="star s1">✦</span><span class="star s2">✦</span><span class="star s3">✧</span>
+      </div>
     </section>
+
+    <section id="about" class="about section">
+      <div>
+        <p class="kicker">ABOUT ME</p>
+        <h2>一个正在长大的探索者</h2>
+      </div>
+      <p class="about-text">我对故事中的人物、文明与艰难选择感到好奇，也喜欢用编程制作真正有用的小工具。这个网站会和我一起成长，记录每一次认真阅读、勇敢创作和动手实践。</p>
+    </section>
+
+    <section class="stats section">
+      <div><strong id="work-count">0</strong><span>件创作</span></div>
+      <div><strong id="book-count">0</strong><span>本阅读记录</span></div>
+      <div><strong id="experience-count">0</strong><span>次影音游戏体验</span></div>
+    </section>
+
+    <div id="collections"></div>
   </main>
 
-  <script src="app.js"></script>
+  <footer>
+    <strong>Claire's Universe</strong>
+    <span>保持好奇，继续创造。</span>
+  </footer>
+
+  <dialog id="detail-dialog">
+    <button id="close-dialog" aria-label="关闭">×</button>
+    <p id="dialog-meta" class="kicker"></p>
+    <h2 id="dialog-title"></h2>
+    <img id="dialog-image" alt="">
+    <p id="dialog-content"></p>
+  </dialog>
+
+  <script src="data.js"></script>
+  <script src="site.js"></script>
 </body>
 </html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小澄立刻行动器</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <p class="eyebrow">决定了，就迈出第一步</p>
+      <h1>小澄立刻行动器</h1>
+      <p class="intro">一次只做一件事。不要等“想做了”才开始，先做两分钟。</p>
+      <p><a href="../">返回 Claire 的个人网站</a></p>
+    </header>
+    <section id="decide-screen" class="card screen active" aria-labelledby="decide-title">
+      <div class="step-label">第 1 步</div>
+      <h2 id="decide-title">你现在决定做什么？</h2>
+      <label for="task">只写一件具体的事</label>
+      <input id="task" maxlength="60" autocomplete="off" placeholder="例如：整理房间">
+      <label for="first-action">最小的第一步是什么？</label>
+      <input id="first-action" maxlength="80" autocomplete="off" placeholder="例如：把地上的书放回书架">
+      <p class="hint">第一步应该简单到两分钟内就能开始。</p>
+      <button id="decide-button" class="primary">我决定了，立刻开始</button>
+      <p id="form-message" class="message" role="alert"></p>
+    </section>
+    <section id="launch-screen" class="card screen" aria-labelledby="launch-title">
+      <div class="step-label">第 2 步</div>
+      <h2 id="launch-title">现在离开屏幕，去做第一步</h2>
+      <p class="task-line">要做：<strong id="launch-task"></strong></p>
+      <p class="action-line">第一步：<strong id="launch-action"></strong></p>
+      <div id="countdown" class="countdown" aria-live="polite">5</div>
+      <p class="launch-note">倒计时结束后，马上站起来。先做两分钟就算成功开始。</p>
+      <button id="started-button" class="primary hidden">我已经开始了</button>
+    </section>
+    <section id="doing-screen" class="card screen" aria-labelledby="doing-title">
+      <div class="step-label">正在行动</div>
+      <h2 id="doing-title">很好，不用一次全部做完</h2>
+      <p class="task-line">正在做：<strong id="doing-task"></strong></p>
+      <div class="timer-wrap"><span>已经行动</span><strong id="timer">00:00</strong></div>
+      <p class="hint center">完成第一步后，可以继续做；需要休息也没关系。</p>
+      <div class="button-row">
+        <button id="finish-button" class="primary">完成了</button>
+        <button id="pause-button" class="secondary">已经开始，稍后继续</button>
+      </div>
+    </section>
+    <section id="done-screen" class="card screen" aria-labelledby="done-title">
+      <div class="success-mark">✓</div>
+      <h2 id="done-title">你把决定变成了行动</h2>
+      <p id="done-summary" class="done-summary"></p>
+      <button id="new-button" class="primary">决定下一件事</button>
+    </section>
+    <section class="history card">
+      <div class="history-heading"><div><p class="eyebrow">你的行动记录</p><h2>我确实开始过</h2></div><button id="clear-button" class="text-button">清空记录</button></div>
+      <ul id="history-list"></ul>
+      <p id="empty-history" class="empty-history">完成第一次“立刻开始”后，记录会出现在这里。</p>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
