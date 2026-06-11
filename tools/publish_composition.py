@@ -3,6 +3,8 @@ import json
 import re
 import shutil
 import subprocess
+import os
+import sys
 import unicodedata
 from datetime import date, datetime
 from pathlib import Path
@@ -79,6 +81,9 @@ def unique_slug(title, items):
 
 
 def recognize_title(path):
+    paddle_title = recognize_title_with_paddle(path)
+    if paddle_title:
+        return paddle_title
     candidates = [
         shutil.which("tesseract"),
         r"C:\Program Files\Tesseract-OCR\tesseract.exe",
@@ -105,6 +110,57 @@ def recognize_title(path):
         return ""
     finally:
         temp.unlink(missing_ok=True)
+
+
+def recognize_title_with_paddle(path):
+    package_dir = ROOT / "tools" / "ocr_packages"
+    runner = ROOT / "tools" / "paddle_ocr_title.py"
+    if not package_dir.exists():
+        return ""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(package_dir)
+    env["FLAGS_use_mkldnn"] = "0"
+    env["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    try:
+        result = subprocess.run(
+            [sys.executable, str(runner), str(path.resolve())],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=300,
+        )
+        # Paddle may write informational logs to stdout, so parse the final JSON line.
+        payload = next(
+            (line for line in reversed(result.stdout.splitlines()) if line.strip().startswith("[")),
+            "",
+        )
+        candidates = json.loads(payload) if payload else []
+        return choose_paddle_title(candidates)
+    except Exception:
+        return ""
+
+
+def choose_paddle_title(candidates):
+    filtered = []
+    ignored = {"星期", "天气", "修正", "年月日"}
+    for item in candidates:
+        text = clean_title_line(str(item.get("text", "")))
+        score = float(item.get("score", 0))
+        box = item.get("box", [0, 0, 0, 0])
+        y = box[1] if len(box) > 1 else 99999
+        if 2 <= len(text) <= 20 and score >= 0.75 and text not in ignored:
+            filtered.append((y, -score, len(text), text))
+    if not filtered:
+        return ""
+    # The title appears before body text and is usually a short, high-confidence line.
+    filtered.sort()
+    top_area = filtered[:5]
+    return min(top_area, key=lambda item: (item[2], item[1]))[3]
 
 
 def recognize_title_with_windows_ocr(path):
