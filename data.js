@@ -1,22 +1,6 @@
-// 添加新内容时，只需在对应数组中复制一项并修改文字。
-// date 建议写成 YYYY-MM-DD；没有日期时可以留空。
+// Add new non-composition content by copying an item in the matching array.
 window.CLAIRE_CONTENT = {
-  compositions: [
-    {
-      slug: "composition-2026-06-11-c63c1511",
-      title: "新作文",
-      date: "2026-06-11",
-      summary: "点击进入详情页，查看完整作文。",
-      image: "assets/compositions/composition-2026-06-11-c63c1511.jpg"
-    },
-    {
-      slug: "my-future-magic-clothes",
-      title: "我的未来神衣",
-      date: "2026-06-11",
-      summary: "我设计了一件能防污、变换图案、自动调温的未来衣服。",
-      image: "assets/compositions/my-future-magic-clothes.jpg"
-    },
-  ],
+  compositions: window.CLAIRE_COMPOSITIONS || [],
   artworks: [
     // { title: "画作名称", date: "2026-06-10", summary: "画作介绍", image: "assets/artworks/example.jpg" },
   ],
