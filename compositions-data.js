@@ -1,3 +1,4 @@
+window.CLAIRE_COMPOSITIONS_VERSION = "20260611205831";
 window.CLAIRE_COMPOSITIONS = [
   {
     "slug": "my-future-magic-clothes",

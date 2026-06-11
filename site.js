@@ -50,7 +50,8 @@ function card(item, type) {
 
   if (type === "作文") {
     const link = document.createElement("a");
-    link.href = `composition.html?id=${encodeURIComponent(item.slug)}`;
+    const version = window.CLAIRE_COMPOSITIONS_VERSION || Date.now();
+    link.href = `composition.html?id=${encodeURIComponent(item.slug)}&v=${encodeURIComponent(version)}`;
     link.textContent = "阅读完整作文 →";
     body.append(link);
     article.addEventListener("click", (event) => {

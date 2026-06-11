@@ -49,8 +49,12 @@ def read_compositions():
 
 def write_compositions(items):
     payload = json.dumps(items, ensure_ascii=False, indent=2)
-    COMPOSITIONS_FILE.write_text(f"window.CLAIRE_COMPOSITIONS = {payload};\n", encoding="utf-8")
     stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    COMPOSITIONS_FILE.write_text(
+        f'window.CLAIRE_COMPOSITIONS_VERSION = "{stamp}";\n'
+        f"window.CLAIRE_COMPOSITIONS = {payload};\n",
+        encoding="utf-8",
+    )
     for html_file in HTML_FILES:
         text = html_file.read_text(encoding="utf-8")
         text = re.sub(r"compositions-data\.js\?v=[^\"']+", f"compositions-data.js?v={stamp}", text)
@@ -82,7 +86,7 @@ def recognize_title(path):
     ]
     tesseract = next((item for item in candidates if item and Path(item).exists()), None)
     if not tesseract:
-        return ""
+        return recognize_title_with_windows_ocr(path)
     temp = ROOT / ".composition-title-crop.png"
     try:
         with Image.open(path) as image:
@@ -101,6 +105,52 @@ def recognize_title(path):
         return ""
     finally:
         temp.unlink(missing_ok=True)
+
+
+def recognize_title_with_windows_ocr(path):
+    temp = ROOT / ".composition-title-crop.png"
+    try:
+        with Image.open(path) as image:
+            # The title is normally centered near the top of the first page.
+            top = image.crop((0, 0, image.width, max(1, image.height // 4)))
+            top.save(temp)
+        script = ROOT / "tools" / "windows_ocr.ps1"
+        result = subprocess.run(
+            [
+                "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-File", str(script), "-ImagePath", str(temp.resolve()),
+            ],
+            text=True,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=45,
+        )
+        lines = [clean_title_line(line) for line in result.stdout.splitlines()]
+        lines = [line for line in lines if line]
+        return choose_title_line(lines)
+    except Exception:
+        return ""
+    finally:
+        temp.unlink(missing_ok=True)
+
+
+def clean_title_line(line):
+    line = re.sub(r"\s+", "", line)
+    line = re.sub(r"^[年月日星期天气：:]+$", "", line)
+    line = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9《》·]", "", line)
+    return line[:40]
+
+
+def choose_title_line(lines):
+    candidates = [
+        line for line in lines
+        if 2 <= len(line) <= 20 and not re.fullmatch(r"[年月日星期天气]+", line)
+    ]
+    if not candidates:
+        return ""
+    # Titles are usually short and appear before the body text.
+    return min(candidates[:5], key=len)
 
 
 def suggested_title(path):
@@ -190,8 +240,10 @@ class Publisher:
             return
         self.paths = [Path(path) for path in selected]
         if not self.title.get().strip():
-            self.title.set(suggested_title(self.paths[0]))
+            recognized = suggested_title(self.paths[0])
+            self.title.set(recognized)
         self.refresh()
+        self.status.set(f"已自动识别建议标题“{self.title.get()}”。请确认；不正确时直接修改。")
 
     def move(self, offset):
         selected = self.listbox.curselection()
