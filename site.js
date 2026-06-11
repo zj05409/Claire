@@ -92,3 +92,127 @@ dialog.addEventListener("click", (event) => {
 const nav = document.querySelector("#nav");
 document.querySelector("#menu-button").addEventListener("click", () => nav.classList.toggle("open"));
 nav.addEventListener("click", () => nav.classList.remove("open"));
+
+const imageInput = document.querySelector("#composition-images");
+const imageOrder = document.querySelector("#image-order");
+const uploadMessage = document.querySelector("#upload-message");
+const stitchButton = document.querySelector("#stitch-button");
+const compositionCanvas = document.querySelector("#composition-canvas");
+const previewPlaceholder = document.querySelector("#preview-placeholder");
+const downloadComposition = document.querySelector("#download-composition");
+let compositionFiles = [];
+
+function setUploadMessage(message, isError = false) {
+  uploadMessage.textContent = message;
+  uploadMessage.classList.toggle("error", isError);
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error(`无法读取 ${file.name}`));
+    };
+    image.src = url;
+  });
+}
+
+function renderImageOrder() {
+  imageOrder.replaceChildren();
+  compositionFiles.forEach((file, index) => {
+    const item = document.createElement("li");
+    const thumb = document.createElement("img");
+    const info = document.createElement("div");
+    const name = document.createElement("strong");
+    const position = document.createElement("span");
+    const controls = document.createElement("div");
+    controls.className = "order-buttons";
+    thumb.src = URL.createObjectURL(file);
+    thumb.onload = () => URL.revokeObjectURL(thumb.src);
+    thumb.alt = `第${index + 1}张照片`;
+    name.textContent = file.name;
+    position.textContent = `第 ${index + 1} 张`;
+    info.append(name, position);
+
+    [["↑", -1, "上移"], ["↓", 1, "下移"], ["×", 0, "删除"]].forEach(([text, offset, label]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = text;
+      button.title = label;
+      button.setAttribute("aria-label", `${file.name}${label}`);
+      button.disabled = (offset === -1 && index === 0) || (offset === 1 && index === compositionFiles.length - 1);
+      button.addEventListener("click", () => {
+        if (offset === 0) compositionFiles.splice(index, 1);
+        else [compositionFiles[index], compositionFiles[index + offset]] = [compositionFiles[index + offset], compositionFiles[index]];
+        updateUploader();
+      });
+      controls.append(button);
+    });
+    item.append(thumb, info, controls);
+    imageOrder.append(item);
+  });
+}
+
+function updateUploader() {
+  renderImageOrder();
+  const valid = compositionFiles.length >= 2 && compositionFiles.length <= 3;
+  stitchButton.disabled = !valid;
+  if (!compositionFiles.length) setUploadMessage("尚未选择照片。");
+  else if (!valid) setUploadMessage("请选择2至3张照片。", true);
+  else setUploadMessage(`已选择 ${compositionFiles.length} 张照片。可以调整顺序后生成。`);
+  compositionCanvas.style.display = "none";
+  downloadComposition.style.display = "none";
+  previewPlaceholder.style.display = "grid";
+}
+
+imageInput.addEventListener("change", () => {
+  const selected = [...imageInput.files].filter((file) => file.type.startsWith("image/"));
+  if (selected.length > 3) {
+    compositionFiles = selected.slice(0, 3);
+    setUploadMessage("一次最多处理3张照片，已保留前3张。", true);
+  } else {
+    compositionFiles = selected;
+  }
+  updateUploader();
+});
+
+stitchButton.addEventListener("click", async () => {
+  stitchButton.disabled = true;
+  setUploadMessage("正在统一宽度并拼接照片……");
+  try {
+    const images = await Promise.all(compositionFiles.map(loadImage));
+    const targetWidth = Math.min(...images.map((image) => image.naturalWidth));
+    const heights = images.map((image) => Math.round(image.naturalHeight * targetWidth / image.naturalWidth));
+    const totalHeight = heights.reduce((sum, height) => sum + height, 0);
+    const maxPixels = 70_000_000;
+    if (targetWidth * totalHeight > maxPixels || targetWidth > 32767 || totalHeight > 32767) {
+      throw new Error("拼接图片太大，请先降低照片分辨率后重试。");
+    }
+
+    compositionCanvas.width = targetWidth;
+    compositionCanvas.height = totalHeight;
+    const context = compositionCanvas.getContext("2d");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, targetWidth, totalHeight);
+    let y = 0;
+    images.forEach((image, index) => {
+      context.drawImage(image, 0, y, targetWidth, heights[index]);
+      y += heights[index];
+    });
+    downloadComposition.href = compositionCanvas.toDataURL("image/jpeg", 0.94);
+    previewPlaceholder.style.display = "none";
+    compositionCanvas.style.display = "block";
+    downloadComposition.style.display = "inline-block";
+    setUploadMessage(`拼接完成：统一宽度 ${targetWidth}px，共 ${images.length} 张照片。`);
+  } catch (error) {
+    setUploadMessage(error.message || "拼接失败，请重新选择照片。", true);
+  } finally {
+    stitchButton.disabled = false;
+  }
+});
