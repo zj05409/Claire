@@ -14,7 +14,6 @@
     <nav id="nav">
       <a href="#about">简介</a>
       <a href="#compositions">作文</a>
-      <a href="#composition-uploader">拼接作文</a>
       <a href="#artworks">画作</a>
       <a href="#projects">编程</a>
       <a href="#books">书籍</a>
@@ -52,36 +51,6 @@
       <div><strong id="work-count">0</strong><span>件创作</span></div>
       <div><strong id="book-count">0</strong><span>本阅读记录</span></div>
       <div><strong id="experience-count">0</strong><span>次影音游戏体验</span></div>
-    </section>
-
-    <section id="composition-uploader" class="uploader section">
-      <div class="section-heading">
-        <div>
-          <p class="kicker">COMPOSITION TOOL</p>
-          <h2>作文照片拼接器</h2>
-        </div>
-        <span>照片只在当前浏览器中处理</span>
-      </div>
-      <div class="uploader-layout">
-        <div class="upload-panel">
-          <label class="file-picker" for="composition-images">
-            <strong>选择2至3张作文照片</strong>
-            <span>支持 JPG、PNG、WebP，按选择顺序从上往下拼接</span>
-          </label>
-          <input id="composition-images" type="file" accept="image/*" multiple>
-          <p id="upload-message" class="upload-message" role="status">尚未选择照片。</p>
-          <ol id="image-order" class="image-order"></ol>
-          <button id="stitch-button" class="tool-button" disabled>生成拼接图片</button>
-        </div>
-        <div class="preview-panel">
-          <div id="preview-placeholder">
-            <strong>拼接预览</strong>
-            <span>选择照片并生成后，图片会显示在这里。</span>
-          </div>
-          <canvas id="composition-canvas"></canvas>
-          <a id="download-composition" class="button primary" download="Claire-作文拼接.jpg">下载拼接图片</a>
-        </div>
-      </div>
     </section>
 
     <div id="collections"></div>
