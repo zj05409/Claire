@@ -1,12 +1,12 @@
 :root {
-  --ink: #17223b;
-  --muted: #63718a;
-  --paper: #fffdf9;
-  --lavender: #7868e6;
-  --pink: #ef7da8;
-  --gold: #f5bd4f;
-  --line: #e7e3ef;
-  --shadow: 0 18px 50px rgba(72, 58, 112, .12);
+  --ink: #51233b;
+  --muted: #8e6578;
+  --paper: #fff7fa;
+  --lavender: #d85f91;
+  --pink: #ee7fab;
+  --gold: #f3a7c5;
+  --line: #f1d8e2;
+  --shadow: 0 18px 50px rgba(151, 65, 103, .14);
 }
 
 * { box-sizing: border-box; }
@@ -30,7 +30,7 @@ a { color: inherit; }
   gap: 20px;
   padding: 15px max(24px, calc((100% - 1120px) / 2));
   border-bottom: 1px solid rgba(231, 227, 239, .8);
-  background: rgba(255, 253, 249, .88);
+  background: rgba(255, 247, 250, .9);
   backdrop-filter: blur(14px);
 }
 .brand { text-decoration: none; font-weight: 900; }
@@ -82,7 +82,7 @@ h1 span { color: var(--pink); }
   margin: auto;
   border: 2px dashed #d9d1f3;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 0 34%, #f5f0ff 35% 52%, transparent 53%);
+  background: radial-gradient(circle, #fff 0 34%, #ffe8f1 35% 52%, transparent 53%);
   animation: float 5s ease-in-out infinite;
 }
 .planet {
@@ -110,7 +110,7 @@ h2 { margin: 0; font-size: clamp(30px, 5vw, 48px); letter-spacing: -.035em; }
   gap: 16px;
   padding: 24px;
   border-radius: 28px;
-  background: #f5f1ff;
+  background: #ffe6f0;
 }
 .stats div { display: grid; gap: 3px; text-align: center; }
 .stats strong { color: var(--lavender); font-size: 36px; }
@@ -145,7 +145,11 @@ h2 { margin: 0; font-size: clamp(30px, 5vw, 48px); letter-spacing: -.035em; }
 }
 .empty { grid-column: 1 / -1; padding: 42px; border: 2px dashed var(--line); border-radius: 22px; color: var(--muted); text-align: center; }
 .empty strong { color: var(--ink); }
-.composition-uploader { margin-bottom: 34px; padding-bottom: 34px; border-bottom: 1px solid var(--line); }
+.composition-uploader { display: none; margin-bottom: 34px; padding-bottom: 34px; border-bottom: 1px solid var(--line); }
+.composition-uploader.unlocked { display: block; animation: reveal .2s ease-out; }
+@keyframes reveal { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.section-actions { display: flex; align-items: center; gap: 12px; }
+.upload-trigger { border: 1px solid var(--line); border-radius: 999px; padding: 8px 13px; color: var(--lavender); background: white; cursor: pointer; font-weight: 900; }
 .uploader-layout { display: grid; grid-template-columns: .82fr 1.18fr; gap: 20px; align-items: start; }
 .upload-panel, .preview-panel {
   padding: 22px;
@@ -161,7 +165,7 @@ h2 { margin: 0; font-size: clamp(30px, 5vw, 48px); letter-spacing: -.035em; }
   border: 2px dashed #cfc6ef;
   border-radius: 16px;
   color: var(--lavender);
-  background: #faf8ff;
+  background: #fff5f9;
   cursor: pointer;
   text-align: center;
 }
@@ -216,17 +220,19 @@ h2 { margin: 0; font-size: clamp(30px, 5vw, 48px); letter-spacing: -.035em; }
   font-weight: 900;
 }
 .tool-button:disabled { cursor: default; opacity: .45; }
+.download-tool { display: none; border: 0; text-align: center; text-decoration: none; }
+.download-tool.ready { display: block; }
 .preview-panel { display: grid; justify-items: center; min-height: 310px; }
 #preview-placeholder { display: grid; align-self: center; gap: 8px; color: var(--muted); text-align: center; }
 #preview-placeholder strong { color: var(--ink); }
 #composition-canvas { display: none; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 5px 18px rgba(23, 34, 59, .12); }
 #download-composition { display: none; margin-top: 18px; }
-.saved-composition .card-body button.delete-composition { margin-top: 10px; color: #b24255; font-size: 12px; }
+#password-dialog p:not(.kicker) { color: var(--muted); line-height: 1.7; }
 footer { display: flex; justify-content: space-between; gap: 20px; padding: 36px 0 60px; color: var(--muted); }
 
 dialog { width: min(680px, calc(100% - 32px)); border: 0; border-radius: 24px; padding: 34px; box-shadow: var(--shadow); }
 dialog::backdrop { background: rgba(23, 34, 59, .55); }
-#close-dialog { float: right; border: 0; background: transparent; font-size: 28px; cursor: pointer; }
+#close-dialog, #close-password { float: right; border: 0; background: transparent; font-size: 28px; cursor: pointer; }
 #dialog-image { width: 100%; max-height: 420px; object-fit: contain; border-radius: 14px; }
 #dialog-content { white-space: pre-wrap; color: var(--muted); line-height: 1.9; }
 

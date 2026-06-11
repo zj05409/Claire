@@ -2,7 +2,12 @@
 // date 建议写成 YYYY-MM-DD；没有日期时可以留空。
 window.CLAIRE_CONTENT = {
   compositions: [
-    // { title: "作文标题", date: "2026-06-10", summary: "作文简介", content: "作文全文" },
+    {
+      title: "我的未来神衣",
+      date: "2026-06-11",
+      summary: "我设计了一件能防污、变换图案、自动调温的未来衣服。",
+      image: "assets/compositions/my-future-magic-clothes.jpg"
+    },
   ],
   artworks: [
     // { title: "画作名称", date: "2026-06-10", summary: "画作介绍", image: "assets/artworks/example.jpg" },

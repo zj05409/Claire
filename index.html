@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Claire 的个人作品与阅读记录">
   <title>Claire 的小宇宙</title>
-  <link rel="stylesheet" href="site.css">
+  <link rel="stylesheet" href="site.css?v=20260611-2">
 </head>
 <body>
   <header class="topbar">
@@ -69,7 +69,17 @@
     <p id="dialog-content"></p>
   </dialog>
 
-  <script src="data.js"></script>
-  <script src="site.js"></script>
+  <dialog id="password-dialog">
+    <button id="close-password" aria-label="关闭">×</button>
+    <p class="kicker">PRIVATE UPLOAD</p>
+    <h2>请输入上传密码</h2>
+    <p>密码正确后，才会显示作文照片拼接与上传准备工具。</p>
+    <input id="upload-password" class="composition-title" type="password" autocomplete="current-password" placeholder="上传密码">
+    <p id="password-message" class="upload-message" role="alert"></p>
+    <button id="unlock-upload" class="tool-button">确认密码</button>
+  </dialog>
+
+  <script src="data.js?v=20260611-2"></script>
+  <script src="site.js?v=20260611-2"></script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 const content = window.CLAIRE_CONTENT;
+const UPLOAD_PASSWORD_HASH = "0567920039296b530fe17199dea7b78bdbb8fe5b40dcda33f715090f1df5f2a3";
 
 const sections = [
   { id: "compositions", title: "我的作文", eyebrow: "WRITING", empty: "第一篇作文正在路上。", type: "作文" },
@@ -15,10 +16,9 @@ const dialogTitle = document.querySelector("#dialog-title");
 const dialogMeta = document.querySelector("#dialog-meta");
 const dialogContent = document.querySelector("#dialog-content");
 const dialogImage = document.querySelector("#dialog-image");
-let localCompositions = [];
 let compositionFiles = [];
 let stitchedBlob = null;
-let stitchedPreviewUrl = "";
+let stitchedUrl = "";
 
 function showDetail(item, type) {
   dialogMeta.textContent = [type, item.kind, item.date, item.creator].filter(Boolean).join(" · ");
@@ -32,9 +32,9 @@ function showDetail(item, type) {
   dialog.showModal();
 }
 
-function card(item, type, local = false) {
+function card(item, type) {
   const article = document.createElement("article");
-  article.className = `item-card${local ? " saved-composition" : ""}`;
+  article.className = "item-card";
   if (item.image) {
     const image = document.createElement("img");
     image.src = item.image;
@@ -51,7 +51,6 @@ function card(item, type, local = false) {
   const summary = document.createElement("p");
   summary.textContent = item.summary || "等待补充介绍。";
   body.append(meta, title, summary);
-
   if (item.link) {
     const link = document.createElement("a");
     link.href = item.link;
@@ -63,34 +62,8 @@ function card(item, type, local = false) {
     button.addEventListener("click", () => showDetail(item, type));
     body.append(button);
   }
-  if (local) {
-    const remove = document.createElement("button");
-    remove.className = "delete-composition";
-    remove.textContent = "从这台设备删除";
-    remove.addEventListener("click", async () => {
-      if (!window.confirm(`确定删除作文《${item.title}》吗？`)) return;
-      await deleteComposition(item.id);
-      await refreshLocalCompositions();
-    });
-    body.append(remove);
-  }
   article.append(body);
   return article;
-}
-
-function renderCompositionGrid() {
-  const grid = document.querySelector("#compositions .grid");
-  const count = document.querySelector("#compositions .section-heading span");
-  if (!grid) return;
-  grid.replaceChildren();
-  const all = [...localCompositions, ...content.compositions];
-  count.textContent = `${all.length} 条记录`;
-  if (!all.length) {
-    grid.innerHTML = `<div class="empty"><strong>这里暂时是空的</strong><p>第一篇作文正在路上。</p></div>`;
-    return;
-  }
-  localCompositions.forEach((item) => grid.append(card(item, "作文", true)));
-  content.compositions.forEach((item) => grid.append(card(item, "作文")));
 }
 
 function createUploader() {
@@ -107,8 +80,8 @@ function createUploader() {
         <input id="composition-images" type="file" accept="image/*" multiple>
         <p id="upload-message" class="upload-message" role="status">尚未选择照片。</p>
         <ol id="image-order" class="image-order"></ol>
-        <button id="save-composition" class="tool-button" disabled>添加到我的作文</button>
-        <p class="local-note">作文保存在当前设备的浏览器中，不会自动同步到其他设备。</p>
+        <a id="download-composition" class="tool-button download-tool">下载待发布作文图片</a>
+        <p class="local-note">为保护 GitHub 仓库安全，网页不会保存上传令牌。下载后通过受保护的 GitHub 提交流程公开发布。</p>
       </div>
       <div class="preview-panel">
         <div id="preview-placeholder"><strong>自动拼接预览</strong><span>选择至少两张照片后，系统会自动生成。</span></div>
@@ -122,7 +95,21 @@ sections.forEach(({ id, title, eyebrow, empty, type }) => {
   const section = document.createElement("section");
   section.id = id;
   section.className = "collection section";
-  section.innerHTML = `<div class="section-heading"><div><p class="kicker">${eyebrow}</p><h2>${title}</h2></div><span>${content[id].length} 条记录</span></div>`;
+  const heading = document.createElement("div");
+  heading.className = "section-heading";
+  heading.innerHTML = `<div><p class="kicker">${eyebrow}</p><h2>${title}</h2></div>`;
+  const actions = document.createElement("div");
+  actions.className = "section-actions";
+  actions.innerHTML = `<span>${content[id].length} 条记录</span>`;
+  if (id === "compositions") {
+    const upload = document.createElement("button");
+    upload.className = "upload-trigger";
+    upload.textContent = "上传作文";
+    upload.addEventListener("click", () => document.querySelector("#password-dialog").showModal());
+    actions.append(upload);
+  }
+  heading.append(actions);
+  section.append(heading);
   if (id === "compositions") section.append(createUploader());
   const grid = document.createElement("div");
   grid.className = "grid";
@@ -146,13 +133,32 @@ const nav = document.querySelector("#nav");
 document.querySelector("#menu-button").addEventListener("click", () => nav.classList.toggle("open"));
 nav.addEventListener("click", () => nav.classList.remove("open"));
 
+const passwordDialog = document.querySelector("#password-dialog");
+const passwordInput = document.querySelector("#upload-password");
+const passwordMessage = document.querySelector("#password-message");
+document.querySelector("#close-password").addEventListener("click", () => passwordDialog.close());
+document.querySelector("#unlock-upload").addEventListener("click", async () => {
+  const bytes = new TextEncoder().encode(passwordInput.value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  if (hash !== UPLOAD_PASSWORD_HASH) {
+    passwordMessage.textContent = "密码不正确。";
+    return;
+  }
+  passwordMessage.textContent = "";
+  passwordInput.value = "";
+  passwordDialog.close();
+  document.querySelector(".composition-uploader").classList.add("unlocked");
+  document.querySelector(".composition-uploader").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
 const imageInput = document.querySelector("#composition-images");
 const titleInput = document.querySelector("#composition-title");
 const imageOrder = document.querySelector("#image-order");
 const uploadMessage = document.querySelector("#upload-message");
-const saveButton = document.querySelector("#save-composition");
 const compositionCanvas = document.querySelector("#composition-canvas");
 const previewPlaceholder = document.querySelector("#preview-placeholder");
+const downloadComposition = document.querySelector("#download-composition");
 
 function setUploadMessage(message, isError = false) {
   uploadMessage.textContent = message;
@@ -212,16 +218,18 @@ function renderImageOrder() {
 
 function canvasToBlob(canvas) {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("无法生成拼接图片。")), "image/jpeg", 0.92);
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("无法生成拼接图片。")), "image/jpeg", 0.94);
   });
 }
 
 async function autoStitch() {
+  if (stitchedUrl) URL.revokeObjectURL(stitchedUrl);
+  stitchedBlob = null;
+  stitchedUrl = "";
+  downloadComposition.classList.remove("ready");
   if (compositionFiles.length < 2) {
-    stitchedBlob = null;
     compositionCanvas.style.display = "none";
     previewPlaceholder.style.display = "grid";
-    saveButton.disabled = true;
     return;
   }
   setUploadMessage("正在自动统一宽度并拼接照片……");
@@ -244,13 +252,14 @@ async function autoStitch() {
       y += heights[index];
     });
     stitchedBlob = await canvasToBlob(compositionCanvas);
+    stitchedUrl = URL.createObjectURL(stitchedBlob);
+    downloadComposition.href = stitchedUrl;
+    downloadComposition.download = `${titleInput.value.trim() || "Claire-作文"}.jpg`;
+    downloadComposition.classList.add("ready");
     previewPlaceholder.style.display = "none";
     compositionCanvas.style.display = "block";
-    saveButton.disabled = !titleInput.value.trim();
     setUploadMessage(`自动拼接完成：共 ${images.length} 张照片，统一宽度 ${targetWidth}px。`);
   } catch (error) {
-    stitchedBlob = null;
-    saveButton.disabled = true;
     setUploadMessage(error.message || "拼接失败，请重新选择照片。", true);
   }
 }
@@ -266,95 +275,6 @@ imageInput.addEventListener("change", async () => {
   compositionFiles = [...imageInput.files].filter((file) => file.type.startsWith("image/"));
   await updateUploader();
 });
-
 titleInput.addEventListener("input", () => {
-  saveButton.disabled = !stitchedBlob || !titleInput.value.trim();
+  downloadComposition.download = `${titleInput.value.trim() || "Claire-作文"}.jpg`;
 });
-
-function openDatabase() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open("claire-personal-site", 1);
-    request.onupgradeneeded = () => request.result.createObjectStore("compositions", { keyPath: "id" });
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function runStore(mode, action) {
-  const db = await openDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction("compositions", mode);
-    const store = transaction.objectStore("compositions");
-    action(store, resolve, reject);
-    transaction.onerror = () => reject(transaction.error);
-    transaction.oncomplete = () => db.close();
-  });
-}
-
-function saveComposition(record) {
-  return runStore("readwrite", (store, resolve, reject) => {
-    const request = store.put(record);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function getCompositions() {
-  return runStore("readonly", (store, resolve, reject) => {
-    const request = store.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function deleteComposition(id) {
-  return runStore("readwrite", (store, resolve, reject) => {
-    const request = store.delete(id);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function refreshLocalCompositions() {
-  localCompositions.forEach((item) => item.image && URL.revokeObjectURL(item.image));
-  const stored = await getCompositions();
-  localCompositions = stored.sort((a, b) => b.createdAt - a.createdAt).map((item) => ({
-    ...item,
-    date: new Date(item.createdAt).toLocaleDateString("zh-CN"),
-    summary: `${item.photoCount} 张作文照片自动拼接`,
-    image: URL.createObjectURL(item.imageBlob),
-  }));
-  renderCompositionGrid();
-  document.querySelector("#work-count").textContent =
-    content.compositions.length + content.artworks.length + content.projects.length + localCompositions.length;
-}
-
-saveButton.addEventListener("click", async () => {
-  const title = titleInput.value.trim();
-  if (!title || !stitchedBlob) return;
-  saveButton.disabled = true;
-  setUploadMessage("正在保存作文……");
-  try {
-    await saveComposition({
-      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-      title,
-      imageBlob: stitchedBlob,
-      photoCount: compositionFiles.length,
-      createdAt: Date.now(),
-    });
-    titleInput.value = "";
-    imageInput.value = "";
-    compositionFiles = [];
-    stitchedBlob = null;
-    compositionCanvas.style.display = "none";
-    previewPlaceholder.style.display = "grid";
-    renderImageOrder();
-    setUploadMessage("作文已经添加到“我的作文”区域。");
-    await refreshLocalCompositions();
-  } catch {
-    setUploadMessage("保存失败，可能是浏览器存储空间不足。", true);
-    saveButton.disabled = false;
-  }
-});
-
-refreshLocalCompositions().catch(() => setUploadMessage("无法读取这台设备上保存的作文。", true));
