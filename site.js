@@ -30,7 +30,7 @@ function showDetail(item, type) {
 
 function card(item, type) {
   const article = document.createElement("article");
-  article.className = `item-card${type === "作文" ? " composition-card" : ""}`;
+  article.className = `item-card${type === "作文" ? " composition-card" : ""}${type === "画作" ? " artwork-card" : ""}`;
   if (item.image) {
     const image = document.createElement("img");
     image.src = item.image;

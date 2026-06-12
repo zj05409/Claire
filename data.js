@@ -1,9 +1,7 @@
 // Add new non-composition content by copying an item in the matching array.
 window.CLAIRE_CONTENT = {
   compositions: window.CLAIRE_COMPOSITIONS || [],
-  artworks: [
-    // { title: "画作名称", date: "2026-06-10", summary: "画作介绍", image: "assets/artworks/example.jpg" },
-  ],
+  artworks: window.CLAIRE_ARTWORKS || [],
   projects: [
     {
       title: "小澄立刻行动器",

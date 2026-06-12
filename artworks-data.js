@@ -1,0 +1,2 @@
+window.CLAIRE_ARTWORKS_VERSION = "20260612-initial";
+window.CLAIRE_ARTWORKS = [];
