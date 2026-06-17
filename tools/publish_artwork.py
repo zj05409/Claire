@@ -8,6 +8,7 @@ from datetime import date, datetime
 from pathlib import Path
 from tkinter import END, LEFT, Button, Entry, Frame, Label, Listbox, StringVar, Text, Tk, Toplevel, filedialog, messagebox
 
+from camera_capture import capture_photo
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "assets" / "artworks"
@@ -98,7 +99,10 @@ class ArtworkPublisher:
         self.summary = Text(self.root, font=("Microsoft YaHei", 10), height=6)
         self.summary.pack(fill="x", padx=28, pady=(6, 12))
         Label(self.root, textvariable=self.status, fg="#8e6578", wraplength=650).pack(pady=8)
-        Button(self.root, text="选择画作图片", command=self.choose_image, padx=18, pady=7).pack(pady=5)
+        image_actions = Frame(self.root)
+        image_actions.pack(pady=5)
+        Button(image_actions, text="选择画作图片", command=self.choose_image, padx=18, pady=7).pack(side=LEFT, padx=5)
+        Button(image_actions, text="拍照选择画作", command=self.take_photo, padx=18, pady=7).pack(side=LEFT, padx=5)
         actions = Frame(self.root)
         actions.pack(pady=20)
         Button(actions, text="发布到 GitHub", command=self.publish, bg="#d85f91", fg="white",
@@ -117,6 +121,17 @@ class ArtworkPublisher:
         if not self.title.get().strip():
             self.title.set(suggested_title(self.image_path))
         self.status.set(f"已选择：{self.image_path.name}。请确认名称和介绍。")
+
+    def take_photo(self):
+        try:
+            captured = capture_photo("artwork")
+        except Exception as error:
+            messagebox.showerror("拍照失败", str(error))
+            return
+        self.image_path = captured
+        if not self.title.get().strip():
+            self.title.set(suggested_title(captured))
+        self.status.set(f"已拍照并选择：{captured.name}。请确认名称和介绍后发布。")
 
     def publish(self):
         title = self.title.get().strip()

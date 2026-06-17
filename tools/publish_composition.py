@@ -11,6 +11,7 @@ from pathlib import Path
 from tkinter import END, LEFT, Button, Entry, Frame, Label, Listbox, StringVar, Tk, Toplevel, filedialog, messagebox
 
 from PIL import Image
+from camera_capture import capture_photo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -265,6 +266,7 @@ class Publisher:
         controls = Frame(self.root)
         controls.pack(pady=8)
         Button(controls, text="选择照片", command=self.choose).pack(side=LEFT, padx=4)
+        Button(controls, text="拍照添加", command=self.take_photo).pack(side=LEFT, padx=4)
         Button(controls, text="上移", command=lambda: self.move(-1)).pack(side=LEFT, padx=4)
         Button(controls, text="下移", command=lambda: self.move(1)).pack(side=LEFT, padx=4)
         Button(controls, text="移除照片", command=self.remove_photo).pack(side=LEFT, padx=4)
@@ -300,6 +302,18 @@ class Publisher:
             self.title.set(recognized)
         self.refresh()
         self.status.set(f"已自动识别建议标题“{self.title.get()}”。请确认；不正确时直接修改。")
+
+    def take_photo(self):
+        try:
+            captured = capture_photo("composition")
+        except Exception as error:
+            messagebox.showerror("拍照失败", str(error))
+            return
+        self.paths.append(captured)
+        if not self.title.get().strip():
+            self.title.set(suggested_title(captured))
+        self.refresh()
+        self.status.set(f"已拍照并添加：{captured.name}。可以继续拍下一张，或确认顺序后发布。")
 
     def move(self, offset):
         selected = self.listbox.curselection()
