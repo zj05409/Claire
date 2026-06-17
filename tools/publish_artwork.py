@@ -18,12 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "assets" / "artworks"
 ARTWORKS_FILE = ROOT / "artworks-data.js"
 INDEX_FILE = ROOT / "index.html"
-DEEPSEEK_SETTINGS_FILE = ROOT / "tools" / "deepseek-settings.json"
-DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
-DEEPSEEK_MODEL = "deepseek-v4-flash"
 DOUBAO_SETTINGS_FILE = ROOT / "tools" / "doubao-settings.json"
-DOUBAO_API_URL = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
-DOUBAO_DEFAULT_MODEL = "doubao-seed-1-8-251228"
+DOUBAO_API_URL = "https://ark.cn-beijing.volces.com/api/v3/responses"
+DOUBAO_DEFAULT_MODEL = "doubao-seed-2-0-lite-260428"
 
 
 def run(command):
@@ -98,24 +95,11 @@ def simple_description(title, source_type):
     return f"这是 Claire 的画作《{title}》，记录了她的一次创作练习。"
 
 
-def read_deepseek_settings():
-    if not DEEPSEEK_SETTINGS_FILE.exists():
-        return {}
-    try:
-        return json.loads(DEEPSEEK_SETTINGS_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-
-
-def write_deepseek_settings(settings):
-    DEEPSEEK_SETTINGS_FILE.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
 def read_doubao_settings():
     if not DOUBAO_SETTINGS_FILE.exists():
         return {}
     try:
-        return json.loads(DOUBAO_SETTINGS_FILE.read_text(encoding="utf-8"))
+        return json.loads(DOUBAO_SETTINGS_FILE.read_text(encoding="utf-8-sig"))
     except Exception:
         return {}
 
@@ -143,6 +127,21 @@ def image_to_data_url(path):
     return f"data:{mime_type};base64,{data}"
 
 
+def extract_response_text(result):
+    if result.get("output_text"):
+        return str(result["output_text"])
+    chunks = []
+    for item in result.get("output", []):
+        for content in item.get("content", []):
+            if isinstance(content, dict):
+                text = content.get("text") or content.get("output_text")
+                if text:
+                    chunks.append(str(text))
+    if chunks:
+        return "\n".join(chunks)
+    raise ValueError("豆包返回内容里没有找到文本。")
+
+
 def generate_artwork_metadata_with_doubao(api_key, model, image_path, filename, current_title, source_type):
     source_label = "拍照上传" if source_type == "photo" else "选择本地图片"
     prompt = f"""
@@ -162,19 +161,15 @@ def generate_artwork_metadata_with_doubao(api_key, model, image_path, filename, 
 """
     payload = {
         "model": model,
-        "messages": [
+        "input": [
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": image_to_data_url(image_path)}},
+                    {"type": "input_image", "image_url": image_to_data_url(image_path)},
+                    {"type": "input_text", "text": prompt},
                 ],
             }
         ],
-        "response_format": {"type": "json_object"},
-        "max_tokens": 300,
-        "stream": False,
-        "temperature": 0.5,
     }
     request = urllib.request.Request(
         DOUBAO_API_URL,
@@ -194,57 +189,7 @@ def generate_artwork_metadata_with_doubao(api_key, model, image_path, filename, 
     except Exception as error:
         raise RuntimeError(f"豆包视觉 API 请求失败：{error}") from error
 
-    content = result["choices"][0]["message"]["content"]
-    return parse_ai_json(content)
-
-
-def generate_artwork_metadata_with_deepseek(api_key, filename, current_title, source_type):
-    source_label = "拍照上传" if source_type == "photo" else "选择本地图片"
-    prompt = f"""
-请为 Claire 的个人网站生成一幅画作的标题和介绍。
-
-已知信息：
-- 上传方式：{source_label}
-- 文件名：{filename or "无"}
-- 当前标题：{current_title or "无"}
-
-要求：
-1. 输出中文。
-2. 标题自然、简短，不超过 20 个字。
-3. 介绍温暖、具体，像个人作品网站里的说明，不要夸张，不超过 80 个字。
-4. 只能输出 JSON，格式为 {{"title":"...","summary":"..."}}。
-5. 如果信息不足，不要假装看到了图片内容，可以写成“这幅作品记录了 Claire 的一次绘画练习”这类稳妥介绍。
-"""
-    payload = {
-        "model": DEEPSEEK_MODEL,
-        "messages": [
-            {"role": "system", "content": "你是一个帮助小学生整理个人作品网站的中文编辑。"},
-            {"role": "user", "content": prompt},
-        ],
-        "response_format": {"type": "json_object"},
-        "max_tokens": 300,
-        "stream": False,
-        "temperature": 0.6,
-    }
-    request = urllib.request.Request(
-        DEEPSEEK_API_URL,
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=45) as response:
-            result = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"DeepSeek API 请求失败：{error.code}\n{detail}") from error
-    except Exception as error:
-        raise RuntimeError(f"DeepSeek API 请求失败：{error}") from error
-
-    content = result["choices"][0]["message"]["content"]
+    content = extract_response_text(result)
     return parse_ai_json(content)
 
 
