@@ -70,6 +70,15 @@ def _camera_order():
     return result
 
 
+def _save_frame(cv2, frame, output):
+    ok, encoded = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
+    if not ok:
+        raise RuntimeError("照片编码失败，请再试一次。")
+    output.write_bytes(encoded.tobytes())
+    if not output.exists() or output.stat().st_size == 0:
+        raise RuntimeError(f"照片保存失败：{output}")
+
+
 def capture_photo(prefix):
     """Open a small preview window and save one photo from a Windows camera."""
     cv2 = _load_cv2()
@@ -113,8 +122,7 @@ def capture_photo(prefix):
 
             if key in (13, 32):
                 output = CAPTURE_DIR / f"{prefix}-{datetime.now():%Y%m%d-%H%M%S}.jpg"
-                if not cv2.imwrite(str(output), frame):
-                    raise RuntimeError("照片保存失败，请再试一次。")
+                _save_frame(cv2, frame, output)
                 _write_settings({"preferred_index": camera_indexes[current_index]})
                 return output
 
