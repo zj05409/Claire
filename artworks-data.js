@@ -1,4 +1,4 @@
-window.CLAIRE_ARTWORKS_VERSION = "20260617144356";
+window.CLAIRE_ARTWORKS_VERSION = "20260617155413";
 window.CLAIRE_ARTWORKS = [
   {
     "slug": "artwork-2026-06-17-d2f2175b",
@@ -20,12 +20,5 @@ window.CLAIRE_ARTWORKS = [
     "date": "2026-06-17",
     "summary": "Claire 的画作。",
     "image": "assets/artworks/artwork-2026-06-17-a58b80da.jpg"
-  },
-  {
-    "slug": "2026-03-27",
-    "title": "2026-03-27素描基本技法",
-    "date": "2026-06-17",
-    "summary": "Claire 的画作。",
-    "image": "assets/artworks/2026-03-27.jpg"
   }
 ];
