@@ -1,10 +1,12 @@
 from datetime import datetime
+import json
 from pathlib import Path
 import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
 CAPTURE_DIR = ROOT / "captured"
+SETTINGS_FILE = ROOT / "tools" / "camera-settings.json"
 
 
 for package_dir in (ROOT / "tools" / "ocr_packages", ROOT / "tools" / "camera_packages"):
@@ -36,10 +38,42 @@ def _open_camera(cv2, index):
     return camera
 
 
+def _read_settings():
+    if not SETTINGS_FILE.exists():
+        return {}
+    try:
+        return json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _write_settings(settings):
+    SETTINGS_FILE.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _camera_order():
+    fallback_indexes = [1, 2, 3, 4, 0]
+    settings = _read_settings()
+    preferred = settings.get("preferred_index")
+    ordered = []
+    if isinstance(preferred, int) and preferred in fallback_indexes:
+        ordered.append(preferred)
+
+    # Index 0 is often a virtual webcam such as Iriun. Try the likely phone
+    # camera indexes first, then fall back to 0 for single-camera computers.
+    ordered.extend(fallback_indexes)
+
+    result = []
+    for index in ordered:
+        if index not in result:
+            result.append(index)
+    return result
+
+
 def capture_photo(prefix):
     """Open a small preview window and save one photo from a Windows camera."""
     cv2 = _load_cv2()
-    camera_indexes = [0, 1, 2, 3, 4]
+    camera_indexes = _camera_order()
     current_index = 0
     camera = None
 
@@ -56,7 +90,7 @@ def capture_photo(prefix):
         )
 
     CAPTURE_DIR.mkdir(exist_ok=True)
-    window_name = "Claire Camera - Space/Enter save, C switch, Esc cancel"
+    window_name = "Claire Camera"
 
     try:
         while True:
@@ -66,7 +100,7 @@ def capture_photo(prefix):
 
             cv2.putText(
                 frame,
-                "Space/Enter: save    C: switch camera    Esc: cancel",
+                f"Camera {camera_indexes[current_index]}    Space/Enter: save    C: switch    Esc: cancel",
                 (24, 42),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.85,
@@ -81,6 +115,7 @@ def capture_photo(prefix):
                 output = CAPTURE_DIR / f"{prefix}-{datetime.now():%Y%m%d-%H%M%S}.jpg"
                 if not cv2.imwrite(str(output), frame):
                     raise RuntimeError("照片保存失败，请再试一次。")
+                _write_settings({"preferred_index": camera_indexes[current_index]})
                 return output
 
             if key == 27:
