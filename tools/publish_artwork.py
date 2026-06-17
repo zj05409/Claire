@@ -75,8 +75,10 @@ def unique_slug(title, items):
 
 def suggested_title(path):
     name = path.stem
-    name = re.sub(r"^(微信图片|img|image|photo|drawing|artwork)[_-]*", "", name, flags=re.I)
-    name = re.sub(r"[_-]?\d{8,}.*$", "", name)
+    name = unicodedata.normalize("NFKC", name)
+    name = re.sub(r"^(微信图片|img|image|photo|drawing|artwork|screenshot|capture)[_\-\s]*", "", name, flags=re.I)
+    name = re.sub(r"[_\-]+", " ", name)
+    name = re.sub(r"\s+", " ", name)
     return name.strip(" _-") or "新画作"
 
 
@@ -128,9 +130,8 @@ class ArtworkPublisher:
         if not selected:
             return
         self.image_path = Path(selected)
-        if not self.title.get().strip():
-            self.title.set(suggested_title(self.image_path))
-        self.status.set(f"已选择：{self.image_path.name}。请确认名称和介绍。")
+        self.title.set(suggested_title(self.image_path))
+        self.status.set(f"已从文件名提取标题：{self.title.get()}。不正确时可以直接修改。")
 
     def take_photo(self):
         try:
