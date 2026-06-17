@@ -1,5 +1,12 @@
-window.CLAIRE_ARTWORKS_VERSION = "20260617140001";
+window.CLAIRE_ARTWORKS_VERSION = "20260617140218";
 window.CLAIRE_ARTWORKS = [
+  {
+    "slug": "20260312",
+    "title": "20260312素描基本——认知",
+    "date": "2026-06-17",
+    "summary": "Claire 的画作。",
+    "image": "assets/artworks/20260312.jpg"
+  },
   {
     "slug": "artwork-2026-06-17-a58b80da",
     "title": "素描基本——认知",
