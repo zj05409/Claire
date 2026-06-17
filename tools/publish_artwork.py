@@ -1,5 +1,7 @@
+import base64
 import hashlib
 import json
+import mimetypes
 import re
 import shutil
 import subprocess
@@ -19,6 +21,9 @@ INDEX_FILE = ROOT / "index.html"
 DEEPSEEK_SETTINGS_FILE = ROOT / "tools" / "deepseek-settings.json"
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 DEEPSEEK_MODEL = "deepseek-v4-flash"
+DOUBAO_SETTINGS_FILE = ROOT / "tools" / "doubao-settings.json"
+DOUBAO_API_URL = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+DOUBAO_DEFAULT_MODEL = "doubao-seed-1-8-251228"
 
 
 def run(command):
@@ -106,6 +111,19 @@ def write_deepseek_settings(settings):
     DEEPSEEK_SETTINGS_FILE.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def read_doubao_settings():
+    if not DOUBAO_SETTINGS_FILE.exists():
+        return {}
+    try:
+        return json.loads(DOUBAO_SETTINGS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def write_doubao_settings(settings):
+    DOUBAO_SETTINGS_FILE.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def parse_ai_json(text):
     text = text.strip()
     match = re.search(r"\{.*\}", text, re.S)
@@ -117,6 +135,67 @@ def parse_ai_json(text):
     if not title or not summary:
         raise ValueError("AI 返回内容不完整。")
     return title[:40], summary[:180]
+
+
+def image_to_data_url(path):
+    mime_type = mimetypes.guess_type(path.name)[0] or "image/jpeg"
+    data = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{mime_type};base64,{data}"
+
+
+def generate_artwork_metadata_with_doubao(api_key, model, image_path, filename, current_title, source_type):
+    source_label = "拍照上传" if source_type == "photo" else "选择本地图片"
+    prompt = f"""
+请直接观察图片，为 Claire 的个人网站生成这幅画作的标题和介绍。
+
+补充信息：
+- 上传方式：{source_label}
+- 文件名：{filename or "无"}
+- 当前标题：{current_title or "无"}
+
+要求：
+1. 输出中文。
+2. 标题自然、简短，不超过 20 个字。
+3. 介绍要基于图片内容，温暖、具体，像个人作品网站里的说明，不超过 80 个字。
+4. 不要提到“我看到图片中”。
+5. 只能输出 JSON，格式为 {{"title":"...","summary":"..."}}。
+"""
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": image_to_data_url(image_path)}},
+                ],
+            }
+        ],
+        "response_format": {"type": "json_object"},
+        "max_tokens": 300,
+        "stream": False,
+        "temperature": 0.5,
+    }
+    request = urllib.request.Request(
+        DOUBAO_API_URL,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"豆包视觉 API 请求失败：{error.code}\n{detail}") from error
+    except Exception as error:
+        raise RuntimeError(f"豆包视觉 API 请求失败：{error}") from error
+
+    content = result["choices"][0]["message"]["content"]
+    return parse_ai_json(content)
 
 
 def generate_artwork_metadata_with_deepseek(api_key, filename, current_title, source_type):
@@ -203,7 +282,7 @@ class ArtworkPublisher:
         image_actions.pack(pady=5)
         Button(image_actions, text="选择画作图片", command=self.choose_image, padx=18, pady=7).pack(side=LEFT, padx=5)
         Button(image_actions, text="拍照选择画作", command=self.take_photo, padx=18, pady=7).pack(side=LEFT, padx=5)
-        Button(image_actions, text="AI 生成标题和介绍", command=self.generate_with_ai, padx=18, pady=7).pack(side=LEFT, padx=5)
+        Button(image_actions, text="豆包 AI 看图生成", command=self.generate_with_ai, padx=18, pady=7).pack(side=LEFT, padx=5)
         actions = Frame(self.root)
         actions.pack(pady=20)
         Button(actions, text="发布到 GitHub", command=self.publish, bg="#d85f91", fg="white",
@@ -244,36 +323,51 @@ class ArtworkPublisher:
         if not self.image_path:
             messagebox.showwarning("还没有图片", "请先选择图片或拍照。")
             return
-        settings = read_deepseek_settings()
+        settings = read_doubao_settings()
         api_key = settings.get("api_key", "").strip()
         if not api_key:
             api_key = simpledialog.askstring(
-                "DeepSeek API Key",
-                "请输入 DeepSeek API Key。它只会保存在本地 tools/deepseek-settings.json，不会上传到 GitHub。",
+                "豆包 / 火山方舟 API Key",
+                "请输入火山方舟 API Key。它只会保存在本地 tools/doubao-settings.json，不会上传到 GitHub。",
                 show="*",
                 parent=self.root,
             )
             if not api_key:
                 return
-            write_deepseek_settings({"api_key": api_key.strip()})
+            settings["api_key"] = api_key.strip()
 
-        self.status.set("正在调用 DeepSeek 生成标题和介绍，请稍等...")
+        model = settings.get("model", "").strip()
+        if not model:
+            model = simpledialog.askstring(
+                "豆包视觉模型",
+                "请输入支持图片理解的模型 ID 或接入点 ID。\n可以先用默认值；如果账号提示无权限，再改成你在火山方舟创建的 ep-... 接入点 ID。",
+                initialvalue=DOUBAO_DEFAULT_MODEL,
+                parent=self.root,
+            )
+            if not model:
+                return
+            settings["model"] = model.strip()
+        write_doubao_settings(settings)
+
+        self.status.set("正在调用豆包视觉模型看图生成标题和介绍，请稍等...")
         self.root.update_idletasks()
         try:
-            title, summary = generate_artwork_metadata_with_deepseek(
+            title, summary = generate_artwork_metadata_with_doubao(
                 api_key=api_key,
+                model=model,
+                image_path=self.image_path,
                 filename=self.image_path.name,
                 current_title=self.title.get().strip(),
                 source_type=self.source_type or "file",
             )
         except Exception as error:
             messagebox.showerror("AI 生成失败", str(error))
-            self.status.set("AI 生成失败。可以继续使用简单版标题和介绍，或检查 API Key 后再试。")
+            self.status.set("AI 生成失败。可以继续使用简单版标题和介绍，或检查 API Key / 模型 ID 后再试。")
             return
         self.title.set(title)
         self.summary.delete("1.0", END)
         self.summary.insert("1.0", summary)
-        self.status.set("AI 已生成标题和介绍。发布前仍然可以手动修改。")
+        self.status.set("豆包 AI 已看图生成标题和介绍。发布前仍然可以手动修改。")
 
     def publish(self):
         title = self.title.get().strip()

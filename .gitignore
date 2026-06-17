@@ -3,6 +3,7 @@ tools/ocr_packages/
 tools/camera_packages/
 tools/camera-settings.json
 tools/deepseek-settings.json
+tools/doubao-settings.json
 captured/
 *.pyc
 .paddle-title.jpg

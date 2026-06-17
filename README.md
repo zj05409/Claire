@@ -39,7 +39,7 @@
 
 选择图片时，工具会从文件名自动生成标题和介绍；拍照时，工具会生成默认标题和介绍。两种情况下都可以手动修改。
 
-如果想让 AI 帮忙润色标题和介绍，可以点击“AI 生成标题和介绍”。第一次使用时输入 DeepSeek API Key，Key 只会保存在本地 `tools/deepseek-settings.json`，不会上传到 GitHub。
+如果想让 AI 根据图片内容生成标题和介绍，可以点击“豆包 AI 看图生成”。第一次使用时输入火山方舟 API Key 和支持图片理解的模型 ID 或接入点 ID，设置只会保存在本地 `tools/doubao-settings.json`，不会上传到 GitHub。
 
 原来的“小澄立刻行动器”保留在 `/doit/`。
 
