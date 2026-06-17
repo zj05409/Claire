@@ -8,7 +8,7 @@ from datetime import date, datetime
 from pathlib import Path
 from tkinter import END, LEFT, Button, Entry, Frame, Label, Listbox, StringVar, Text, Tk, Toplevel, filedialog, messagebox
 
-from camera_capture import capture_photo
+from camera_capture import _crop_black_borders, _load_cv2, _save_frame, capture_photo
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "assets" / "artworks"
@@ -80,6 +80,16 @@ def suggested_title(path):
     return name.strip(" _-") or "新画作"
 
 
+def prepare_artwork_image(source, destination):
+    cv2 = _load_cv2()
+    image = cv2.imread(str(source))
+    if image is None:
+        shutil.copy2(source, destination)
+        return
+    image = _crop_black_borders(cv2, image)
+    _save_frame(cv2, image, destination)
+
+
 class ArtworkPublisher:
     def __init__(self):
         self.root = Tk()
@@ -147,9 +157,8 @@ class ArtworkPublisher:
             items = read_artworks()
             slug = unique_slug(title, items)
             ASSET_DIR.mkdir(parents=True, exist_ok=True)
-            suffix = self.image_path.suffix.lower() if self.image_path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"} else ".jpg"
-            destination = ASSET_DIR / f"{slug}{suffix}"
-            shutil.copy2(self.image_path, destination)
+            destination = ASSET_DIR / f"{slug}.jpg"
+            prepare_artwork_image(self.image_path, destination)
             items.insert(0, {"slug": slug, "title": title, "date": date.today().isoformat(),
                              "summary": summary, "image": f"assets/artworks/{destination.name}"})
             write_artworks(items)

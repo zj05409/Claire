@@ -62,6 +62,19 @@ function card(item, type) {
     article.addEventListener("keydown", (event) => {
       if (event.key === "Enter") location.href = link.href;
     });
+  } else if (type === "画作") {
+    const button = document.createElement("button");
+    button.textContent = "查看大图 →";
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      showDetail(item, type);
+    });
+    body.append(button);
+    article.addEventListener("click", () => showDetail(item, type));
+    article.tabIndex = 0;
+    article.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") showDetail(item, type);
+    });
   } else if (item.link) {
     const link = document.createElement("a");
     link.href = item.link;

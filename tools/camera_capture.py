@@ -71,12 +71,38 @@ def _camera_order():
 
 
 def _save_frame(cv2, frame, output):
+    frame = _crop_black_borders(cv2, frame)
     ok, encoded = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
     if not ok:
         raise RuntimeError("照片编码失败，请再试一次。")
     output.write_bytes(encoded.tobytes())
     if not output.exists() or output.stat().st_size == 0:
         raise RuntimeError(f"照片保存失败：{output}")
+
+
+def _crop_black_borders(cv2, frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    mask = gray > 12
+    rows = mask.sum(axis=1)
+    cols = mask.sum(axis=0)
+    min_row_pixels = max(10, int(frame.shape[1] * 0.08))
+    min_col_pixels = max(10, int(frame.shape[0] * 0.08))
+    useful_rows = [index for index, count in enumerate(rows) if count >= min_row_pixels]
+    useful_cols = [index for index, count in enumerate(cols) if count >= min_col_pixels]
+    if not useful_rows or not useful_cols:
+        return frame
+    x = min(useful_cols)
+    y = min(useful_rows)
+    width = max(useful_cols) - x + 1
+    height = max(useful_rows) - y + 1
+    if width < frame.shape[1] * 0.35 or height < frame.shape[0] * 0.35:
+        return frame
+    pad = 8
+    left = max(0, x - pad)
+    top = max(0, y - pad)
+    right = min(frame.shape[1], x + width + pad)
+    bottom = min(frame.shape[0], y + height + pad)
+    return frame[top:bottom, left:right]
 
 
 def capture_photo(prefix):
@@ -107,8 +133,9 @@ def capture_photo(prefix):
             if not ok:
                 continue
 
+            preview = frame.copy()
             cv2.putText(
-                frame,
+                preview,
                 f"Camera {camera_indexes[current_index]}    Space/Enter: save    C: switch    Esc: cancel",
                 (24, 42),
                 cv2.FONT_HERSHEY_SIMPLEX,
@@ -117,7 +144,7 @@ def capture_photo(prefix):
                 2,
                 cv2.LINE_AA,
             )
-            cv2.imshow(window_name, frame)
+            cv2.imshow(window_name, preview)
             key = cv2.waitKey(30) & 0xFF
 
             if key in (13, 32):
