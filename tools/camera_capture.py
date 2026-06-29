@@ -119,6 +119,45 @@ def _crop_black_borders(cv2, frame):
     return frame[top:bottom, left:right]
 
 
+def _fit_preview(cv2, frame, max_width=900, max_height=650):
+    height, width = frame.shape[:2]
+    scale = min(max_width / width, max_height / height, 1)
+    if scale >= 1:
+        return frame.copy()
+    target = (max(1, int(width * scale)), max(1, int(height * scale)))
+    return cv2.resize(frame, target, interpolation=cv2.INTER_AREA)
+
+
+def _draw_help_text(cv2, preview, camera_index, rotate_degrees):
+    lines = [
+        f"Cam {camera_index}  Rot {rotate_degrees % 360}",
+        "Save: Space/Enter  Switch: C  Cancel: Esc",
+    ]
+    y = 30
+    for line in lines:
+        cv2.putText(
+            preview,
+            line,
+            (14, y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.62,
+            (0, 0, 0),
+            4,
+            cv2.LINE_AA,
+        )
+        cv2.putText(
+            preview,
+            line,
+            (14, y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.62,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+        y += 28
+
+
 def capture_photo(prefix, rotate_degrees=0, camera_indexes=None, remember_camera=True, rotate_clockwise=False):
     """Open a small preview window and save one photo from a Windows camera."""
     cv2 = _load_cv2()
@@ -142,6 +181,8 @@ def capture_photo(prefix, rotate_degrees=0, camera_indexes=None, remember_camera
 
     CAPTURE_DIR.mkdir(exist_ok=True)
     window_name = "Claire Camera"
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(window_name, 900, 650)
 
     try:
         while True:
@@ -151,17 +192,8 @@ def capture_photo(prefix, rotate_degrees=0, camera_indexes=None, remember_camera
 
             frame = _rotate_frame(cv2, frame, rotate_degrees)
 
-            preview = frame.copy()
-            cv2.putText(
-                preview,
-                f"Camera {camera_indexes[current_index]}    Rotate {rotate_degrees % 360}    Space/Enter: save    C: switch    Esc: cancel",
-                (24, 42),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.85,
-                (255, 255, 255),
-                2,
-                cv2.LINE_AA,
-            )
+            preview = _fit_preview(cv2, frame)
+            _draw_help_text(cv2, preview, camera_indexes[current_index], rotate_degrees)
             cv2.imshow(window_name, preview)
             key = cv2.waitKey(30) & 0xFF
 
