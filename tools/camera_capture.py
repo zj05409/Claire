@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -119,7 +120,7 @@ def _crop_black_borders(cv2, frame):
     return frame[top:bottom, left:right]
 
 
-def _fit_preview(cv2, frame, max_width=900, max_height=650):
+def _fit_preview(cv2, frame, max_width=900, max_height=620):
     height, width = frame.shape[:2]
     scale = min(max_width / width, max_height / height, 1)
     if scale >= 1:
@@ -128,7 +129,7 @@ def _fit_preview(cv2, frame, max_width=900, max_height=650):
     return cv2.resize(frame, target, interpolation=cv2.INTER_AREA)
 
 
-def _draw_help_text(cv2, preview, camera_index, rotate_degrees):
+def _draw_help_text(cv2, canvas, camera_index, rotate_degrees):
     lines = [
         f"Cam {camera_index}  Rot {rotate_degrees % 360}",
         "Save: Space/Enter  Switch: C  Cancel: Esc",
@@ -136,7 +137,7 @@ def _draw_help_text(cv2, preview, camera_index, rotate_degrees):
     y = 30
     for line in lines:
         cv2.putText(
-            preview,
+            canvas,
             line,
             (14, y),
             cv2.FONT_HERSHEY_SIMPLEX,
@@ -146,7 +147,7 @@ def _draw_help_text(cv2, preview, camera_index, rotate_degrees):
             cv2.LINE_AA,
         )
         cv2.putText(
-            preview,
+            canvas,
             line,
             (14, y),
             cv2.FONT_HERSHEY_SIMPLEX,
@@ -156,6 +157,22 @@ def _draw_help_text(cv2, preview, camera_index, rotate_degrees):
             cv2.LINE_AA,
         )
         y += 28
+
+
+def _make_preview_canvas(cv2, frame, camera_index, rotate_degrees, max_width=900, max_height=700):
+    import numpy as np
+
+    help_height = 72
+    image = _fit_preview(cv2, frame, max_width=max_width, max_height=max_height - help_height)
+    image_height, image_width = image.shape[:2]
+    canvas_width = max(max_width, image_width)
+    canvas_height = help_height + image_height
+    canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
+    canvas[:] = (28, 28, 28)
+    x = math.floor((canvas_width - image_width) / 2)
+    canvas[help_height:help_height + image_height, x:x + image_width] = image
+    _draw_help_text(cv2, canvas, camera_index, rotate_degrees)
+    return canvas
 
 
 def capture_photo(prefix, rotate_degrees=0, camera_indexes=None, remember_camera=True, rotate_clockwise=False):
@@ -182,7 +199,7 @@ def capture_photo(prefix, rotate_degrees=0, camera_indexes=None, remember_camera
     CAPTURE_DIR.mkdir(exist_ok=True)
     window_name = "Claire Camera"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(window_name, 900, 650)
+    cv2.resizeWindow(window_name, 900, 700)
 
     try:
         while True:
@@ -192,8 +209,7 @@ def capture_photo(prefix, rotate_degrees=0, camera_indexes=None, remember_camera
 
             frame = _rotate_frame(cv2, frame, rotate_degrees)
 
-            preview = _fit_preview(cv2, frame)
-            _draw_help_text(cv2, preview, camera_indexes[current_index], rotate_degrees)
+            preview = _make_preview_canvas(cv2, frame, camera_indexes[current_index], rotate_degrees)
             cv2.imshow(window_name, preview)
             key = cv2.waitKey(30) & 0xFF
 
