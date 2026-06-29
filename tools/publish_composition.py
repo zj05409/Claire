@@ -250,7 +250,7 @@ class Publisher:
         self.root.geometry("820x560")
         self.paths = []
         self.title = StringVar()
-        self.rotation_degrees = 90
+        self.rotation_degrees = 0
         self.rotation_text = StringVar(value=f"旋转角度：{self.rotation_degrees}°")
         self.status = StringVar(value="请选择两张或更多作文照片。")
 
@@ -269,11 +269,13 @@ class Publisher:
         controls.pack(pady=8)
         Button(controls, text="选择照片", command=self.choose).pack(side=LEFT, padx=4)
         Button(controls, text="拍照添加", command=self.take_photo).pack(side=LEFT, padx=4)
-        Button(controls, textvariable=self.rotation_text, command=self.rotate_capture).pack(side=LEFT, padx=4)
+        Button(controls, text="顺时针90°", command=lambda: self.rotate_capture(90)).pack(side=LEFT, padx=4)
+        Button(controls, text="逆时针90°", command=lambda: self.rotate_capture(-90)).pack(side=LEFT, padx=4)
         Button(controls, text="上移", command=lambda: self.move(-1)).pack(side=LEFT, padx=4)
         Button(controls, text="下移", command=lambda: self.move(1)).pack(side=LEFT, padx=4)
         Button(controls, text="移除照片", command=self.remove_photo).pack(side=LEFT, padx=4)
 
+        Label(self.root, textvariable=self.rotation_text, fg="#8e6578").pack()
         Label(self.root, textvariable=self.status, fg="#8e6578", wraplength=670).pack(pady=8)
         actions = Frame(self.root)
         actions.pack(pady=(4, 22))
@@ -323,8 +325,8 @@ class Publisher:
         self.refresh()
         self.status.set(f"已拍照并添加：{captured.name}。可以继续拍下一张，或确认顺序后发布。")
 
-    def rotate_capture(self):
-        self.rotation_degrees = (self.rotation_degrees + 90) % 360
+    def rotate_capture(self, offset):
+        self.rotation_degrees = (self.rotation_degrees + offset) % 360
         self.rotation_text.set(f"旋转角度：{self.rotation_degrees}°")
         self.status.set(f"下一次拍照会旋转 {self.rotation_degrees}°。")
 

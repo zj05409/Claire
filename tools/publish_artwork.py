@@ -229,8 +229,10 @@ class ArtworkPublisher:
         image_actions.pack(pady=5)
         Button(image_actions, text="选择画作图片", command=self.choose_image, padx=18, pady=7).pack(side=LEFT, padx=5)
         Button(image_actions, text="拍照选择画作", command=self.take_photo, padx=18, pady=7).pack(side=LEFT, padx=5)
-        Button(image_actions, textvariable=self.rotation_text, command=self.rotate_capture, padx=18, pady=7).pack(side=LEFT, padx=5)
+        Button(image_actions, text="顺时针90°", command=lambda: self.rotate_capture(90), padx=18, pady=7).pack(side=LEFT, padx=5)
+        Button(image_actions, text="逆时针90°", command=lambda: self.rotate_capture(-90), padx=18, pady=7).pack(side=LEFT, padx=5)
         Button(image_actions, text="豆包 AI 看图生成", command=self.generate_with_ai, padx=18, pady=7).pack(side=LEFT, padx=5)
+        Label(self.root, textvariable=self.rotation_text, fg="#8e6578").pack()
         actions = Frame(self.root)
         actions.pack(pady=20)
         Button(actions, text="发布到 GitHub", command=self.publish, bg="#d85f91", fg="white",
@@ -272,8 +274,8 @@ class ArtworkPublisher:
         self.summary.insert("1.0", simple_description(title, self.source_type))
         self.status.set("已为拍照作品生成默认标题和介绍。不正确时可以直接修改，或点击 AI 生成。")
 
-    def rotate_capture(self):
-        self.rotation_degrees = (self.rotation_degrees + 90) % 360
+    def rotate_capture(self, offset):
+        self.rotation_degrees = (self.rotation_degrees + offset) % 360
         self.rotation_text.set(f"旋转角度：{self.rotation_degrees}°")
         self.status.set(f"下一次拍照会旋转 {self.rotation_degrees}°。")
 
