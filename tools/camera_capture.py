@@ -83,8 +83,15 @@ def _save_frame(cv2, frame, output):
         raise RuntimeError(f"照片保存失败：{output}")
 
 
-def _rotate_clockwise(cv2, frame):
-    return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+def _rotate_frame(cv2, frame, degrees):
+    degrees = degrees % 360
+    if degrees == 90:
+        return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    if degrees == 180:
+        return cv2.rotate(frame, cv2.ROTATE_180)
+    if degrees == 270:
+        return cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    return frame
 
 
 def _crop_black_borders(cv2, frame):
@@ -112,9 +119,11 @@ def _crop_black_borders(cv2, frame):
     return frame[top:bottom, left:right]
 
 
-def capture_photo(prefix, rotate_clockwise=False, camera_indexes=None, remember_camera=True):
+def capture_photo(prefix, rotate_degrees=0, camera_indexes=None, remember_camera=True, rotate_clockwise=False):
     """Open a small preview window and save one photo from a Windows camera."""
     cv2 = _load_cv2()
+    if rotate_clockwise and not rotate_degrees:
+        rotate_degrees = 90
     camera_indexes = _camera_order(camera_indexes)
     current_index = 0
     camera = None
@@ -140,13 +149,12 @@ def capture_photo(prefix, rotate_clockwise=False, camera_indexes=None, remember_
             if not ok:
                 continue
 
-            if rotate_clockwise:
-                frame = _rotate_clockwise(cv2, frame)
+            frame = _rotate_frame(cv2, frame, rotate_degrees)
 
             preview = frame.copy()
             cv2.putText(
                 preview,
-                f"Camera {camera_indexes[current_index]}    Space/Enter: save    C: switch    Esc: cancel",
+                f"Camera {camera_indexes[current_index]}    Rotate {rotate_degrees % 360}    Space/Enter: save    C: switch    Esc: cancel",
                 (24, 42),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.85,

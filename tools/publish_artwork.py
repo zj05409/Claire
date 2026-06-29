@@ -211,6 +211,8 @@ class ArtworkPublisher:
         self.image_path = None
         self.source_type = None
         self.title = StringVar()
+        self.rotation_degrees = 0
+        self.rotation_text = StringVar(value=f"旋转角度：{self.rotation_degrees}°")
         self.status = StringVar(value="请选择一张画作图片。")
 
         Label(self.root, text="Claire 画作发布与管理工具", font=("Microsoft YaHei", 20, "bold")).pack(pady=(22, 5))
@@ -227,6 +229,7 @@ class ArtworkPublisher:
         image_actions.pack(pady=5)
         Button(image_actions, text="选择画作图片", command=self.choose_image, padx=18, pady=7).pack(side=LEFT, padx=5)
         Button(image_actions, text="拍照选择画作", command=self.take_photo, padx=18, pady=7).pack(side=LEFT, padx=5)
+        Button(image_actions, textvariable=self.rotation_text, command=self.rotate_capture, padx=18, pady=7).pack(side=LEFT, padx=5)
         Button(image_actions, text="豆包 AI 看图生成", command=self.generate_with_ai, padx=18, pady=7).pack(side=LEFT, padx=5)
         actions = Frame(self.root)
         actions.pack(pady=20)
@@ -252,7 +255,12 @@ class ArtworkPublisher:
 
     def take_photo(self):
         try:
-            captured = capture_photo("artwork")
+            captured = capture_photo(
+                "artwork",
+                rotate_degrees=self.rotation_degrees,
+                camera_indexes=[0, 1, 2, 3, 4],
+                remember_camera=False,
+            )
         except Exception as error:
             messagebox.showerror("拍照失败", str(error))
             return
@@ -263,6 +271,11 @@ class ArtworkPublisher:
         self.summary.delete("1.0", END)
         self.summary.insert("1.0", simple_description(title, self.source_type))
         self.status.set("已为拍照作品生成默认标题和介绍。不正确时可以直接修改，或点击 AI 生成。")
+
+    def rotate_capture(self):
+        self.rotation_degrees = (self.rotation_degrees + 90) % 360
+        self.rotation_text.set(f"旋转角度：{self.rotation_degrees}°")
+        self.status.set(f"下一次拍照会旋转 {self.rotation_degrees}°。")
 
     def generate_with_ai(self):
         if not self.image_path:
