@@ -51,7 +51,10 @@ def _write_settings(settings):
     SETTINGS_FILE.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def _camera_order():
+def _camera_order(camera_indexes=None):
+    if camera_indexes:
+        return list(dict.fromkeys(camera_indexes))
+
     fallback_indexes = [1, 2, 3, 4, 0]
     settings = _read_settings()
     preferred = settings.get("preferred_index")
@@ -80,6 +83,10 @@ def _save_frame(cv2, frame, output):
         raise RuntimeError(f"照片保存失败：{output}")
 
 
+def _rotate_clockwise(cv2, frame):
+    return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+
+
 def _crop_black_borders(cv2, frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     mask = gray > 12
@@ -105,10 +112,10 @@ def _crop_black_borders(cv2, frame):
     return frame[top:bottom, left:right]
 
 
-def capture_photo(prefix):
+def capture_photo(prefix, rotate_clockwise=False, camera_indexes=None, remember_camera=True):
     """Open a small preview window and save one photo from a Windows camera."""
     cv2 = _load_cv2()
-    camera_indexes = _camera_order()
+    camera_indexes = _camera_order(camera_indexes)
     current_index = 0
     camera = None
 
@@ -133,6 +140,9 @@ def capture_photo(prefix):
             if not ok:
                 continue
 
+            if rotate_clockwise:
+                frame = _rotate_clockwise(cv2, frame)
+
             preview = frame.copy()
             cv2.putText(
                 preview,
@@ -150,7 +160,8 @@ def capture_photo(prefix):
             if key in (13, 32):
                 output = CAPTURE_DIR / f"{prefix}-{datetime.now():%Y%m%d-%H%M%S}.jpg"
                 _save_frame(cv2, frame, output)
-                _write_settings({"preferred_index": camera_indexes[current_index]})
+                if remember_camera:
+                    _write_settings({"preferred_index": camera_indexes[current_index]})
                 return output
 
             if key == 27:

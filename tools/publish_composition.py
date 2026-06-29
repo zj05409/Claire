@@ -305,7 +305,12 @@ class Publisher:
 
     def take_photo(self):
         try:
-            captured = capture_photo("composition")
+            captured = capture_photo(
+                "composition",
+                rotate_clockwise=True,
+                camera_indexes=[0, 1, 2, 3, 4],
+                remember_camera=False,
+            )
         except Exception as error:
             messagebox.showerror("拍照失败", str(error))
             return
