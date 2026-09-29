@@ -48,3 +48,19 @@
 原来的“小澄立刻行动器”保留在 `/doit/`。
 
 个人网站只负责展示公开作文。作文列表点击后进入独立详情页，详情页展示完整长图，并可点击打开原始大图。
+
+## 在线后台（免费，手机/电脑都能用）
+
+网站是 GitHub Pages 静态站，后台 `admin/` 页面直接通过 GitHub API 提交内容，不需要服务器，也不需要电脑上的 Python 工具。
+
+访问：`https://zj05409.github.io/Claire/admin/`
+
+第一次使用：
+
+1. 打开 GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token。
+2. Repository access 选 “Only select repositories” → `Claire`；Permissions → Repository permissions → **Contents: Read and write**。
+3. 复制生成的 Token，粘贴到后台页面并保存。Token 只保存在该设备的浏览器中。
+
+功能：拍照/选图发布作文（自动拼长图、可旋转排序）、发布画作、删除已发布内容。每次发布是一次原子提交，约 1 分钟后网站更新。
+
+原来的本地 `.bat` 工具仍可使用（含拍照与 OCR）。

@@ -35,6 +35,8 @@ function card(item, type) {
     const image = document.createElement("img");
     image.src = item.image;
     image.alt = item.title;
+    image.loading = "lazy";
+    image.decoding = "async";
     article.append(image);
   }
   const body = document.createElement("div");

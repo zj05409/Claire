@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Claire 的后台</title>
+  <style>
+    :root { --bg:#f6f4fb; --card:#fff; --ink:#26223a; --muted:#7b7793; --brand:#6a4cff; --danger:#d63c5a; --ok:#1f9d63; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--ink); line-height:1.5; }
+    header { padding:16px; background:var(--brand); color:#fff; display:flex; justify-content:space-between; align-items:center; }
+    header a { color:#fff; font-size:14px; }
+    main { max-width:720px; margin:0 auto; padding:16px; }
+    .card { background:var(--card); border-radius:14px; padding:16px; margin-bottom:16px; box-shadow:0 2px 10px rgba(60,40,120,.08); }
+    h2 { margin:0 0 12px; font-size:18px; }
+    label { display:block; font-size:14px; color:var(--muted); margin:10px 0 4px; }
+    input[type=text], input[type=password], input[type=date], textarea { width:100%; padding:10px; border:1px solid #d9d5ea; border-radius:8px; font:inherit; }
+    textarea { min-height:70px; }
+    button { font:inherit; padding:9px 14px; border:0; border-radius:8px; background:#ece8ff; color:var(--brand); cursor:pointer; }
+    button.primary { background:var(--brand); color:#fff; }
+    button.danger { background:#fde8ec; color:var(--danger); }
+    button:disabled { opacity:.5; cursor:default; }
+    .tabs { display:flex; gap:8px; margin-bottom:16px; }
+    .tabs button { flex:1; }
+    .tabs button.active { background:var(--brand); color:#fff; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+    .photos { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin-top:10px; }
+    .photo { border:1px solid #e3dff2; border-radius:10px; padding:6px; text-align:center; }
+    .photo canvas, .photo img { width:100%; height:120px; object-fit:contain; background:#f3f1fa; border-radius:6px; }
+    .photo .btns { display:flex; flex-wrap:wrap; gap:4px; justify-content:center; margin-top:6px; }
+    .photo .btns button { padding:4px 8px; font-size:13px; }
+    .item { display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #eee; }
+    .item img { width:56px; height:56px; object-fit:cover; border-radius:8px; }
+    .item div { flex:1; min-width:0; }
+    .item small { color:var(--muted); }
+    #status { position:sticky; bottom:8px; padding:10px 14px; border-radius:10px; background:#26223a; color:#fff; display:none; }
+    #status.ok { background:var(--ok); } #status.err { background:var(--danger); }
+    .hint { font-size:13px; color:var(--muted); }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+<header>
+  <strong>Claire 的后台</strong>
+  <a href="../">← 回到网站</a>
+</header>
+<main>
+  <section class="card" id="login-card">
+    <h2>连接 GitHub</h2>
+    <p class="hint">第一次使用：在 GitHub 创建一个只允许访问本仓库的 Token（见 README「在线后台」），粘贴到下面。Token 只保存在这台设备的浏览器里，不会上传到任何地方。</p>
+    <label>仓库</label><input type="text" id="repo" value="zj05409/Claire">
+    <label>分支</label><input type="text" id="branch" value="main">
+    <label>GitHub Token</label><input type="password" id="token" placeholder="github_pat_...">
+    <div class="row"><button class="primary" id="save-token">保存并连接</button><button id="logout" class="hidden">退出（清除 Token）</button></div>
+  </section>
+
+  <div id="app" class="hidden">
+    <div class="tabs">
+      <button data-tab="comp" class="active">发布作文</button>
+      <button data-tab="art">发布画作</button>
+      <button data-tab="manage">管理内容</button>
+    </div>
+
+    <section class="card tab" id="tab-comp">
+      <h2>发布作文</h2>
+      <p class="hint">选择或拍摄两张以上作文照片，会自动按顺序拼成一张长图。</p>
+      <div class="row">
+        <input type="file" id="comp-files" accept="image/*" multiple>
+        <input type="file" id="comp-camera" accept="image/*" capture="environment" class="hidden">
+        <button id="comp-cam-btn">拍照添加</button>
+      </div>
+      <div class="photos" id="comp-photos"></div>
+      <label>标题</label><input type="text" id="comp-title" placeholder="作文题目">
+      <label>日期</label><input type="date" id="comp-date">
+      <label>简介（可不填）</label><textarea id="comp-summary" placeholder="点击进入详情页，查看完整作文。"></textarea>
+      <div class="row"><button class="primary" id="comp-publish">发布作文</button></div>
+    </section>
+
+    <section class="card tab hidden" id="tab-art">
+      <h2>发布画作</h2>
+      <div class="row">
+        <input type="file" id="art-file" accept="image/*">
+        <input type="file" id="art-camera" accept="image/*" capture="environment" class="hidden">
+        <button id="art-cam-btn">拍照</button>
+      </div>
+      <div class="photos" id="art-photos"></div>
+      <label>画作名称</label><input type="text" id="art-title">
+      <label>日期</label><input type="date" id="art-date">
+      <label>介绍（可不填）</label><textarea id="art-summary"></textarea>
+      <div class="row"><button class="primary" id="art-publish">发布画作</button></div>
+    </section>
+
+    <section class="card tab hidden" id="tab-manage">
+      <h2>已发布作文</h2><div id="list-comp"></div>
+      <h2 style="margin-top:20px">已发布画作</h2><div id="list-art"></div>
+      <p class="hint">删除会同时移除网站记录和图片，发布后约 1 分钟生效。GitHub 保留历史，误删可恢复。</p>
+    </section>
+  </div>
+  <div id="status"></div>
+</main>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const LS = {
+  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+const CFG = {
+  comp: { file: "compositions-data.js", varName: "CLAIRE_COMPOSITIONS", dir: "assets/compositions", prefix: "composition", param: "compositions-data.js", label: "作文" },
+  art:  { file: "artworks-data.js", varName: "CLAIRE_ARTWORKS", dir: "assets/artworks", prefix: "artwork", param: "artworks-data.js", label: "画作" },
+};
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+const stamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
+const rand8 = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, "0")).join("");
+
+function status(msg, kind = "") { const s = $("#status"); s.textContent = msg; s.className = kind; s.style.display = msg ? "block" : "none"; }
+
+/* ---------- GitHub API ---------- */
+const gh = {
+  repo: () => LS.get("gh_repo", "zj05409/Claire"),
+  branch: () => LS.get("gh_branch", "main"),
+  async api(path, opts = {}) {
+    const res = await fetch(`https://api.github.com/repos/${gh.repo()}${path}`, {
+      ...opts,
+      headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${LS.get("gh_token", "")}`, "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      let detail = ""; try { detail = (await res.json()).message; } catch {}
+      if (res.status === 401) throw new Error("Token 无效或已过期，请重新连接。");
+      if (res.status === 403 || res.status === 404) throw new Error(`没有权限访问仓库（${res.status}）：请检查 Token 权限是否包含 Contents 读写。${detail}`);
+      throw new Error(`GitHub 错误 ${res.status}：${detail}`);
+    }
+    return res.status === 204 ? null : res.json();
+  },
+  async head() {
+    const ref = await gh.api(`/git/ref/heads/${gh.branch()}`);
+    const commit = await gh.api(`/git/commits/${ref.object.sha}`);
+    return { commitSha: ref.object.sha, treeSha: commit.tree.sha };
+  },
+  async readText(path, commitSha) {
+    const f = await gh.api(`/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${commitSha}`);
+    const bin = atob(f.content.replace(/\n/g, ""));
+    return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+  },
+  async listTree(treeSha) { return (await gh.api(`/git/trees/${treeSha}?recursive=1`)).tree; },
+  // files: [{path, text? , base64? , delete?}] -> one atomic commit
+  async commit(head, files, message) {
+    const entries = [];
+    for (const f of files) {
+      if (f.delete) { entries.push({ path: f.path, mode: "100644", type: "blob", sha: null }); continue; }
+      const blob = await gh.api("/git/blobs", { method: "POST", body: JSON.stringify(
+        f.base64 ? { content: f.base64, encoding: "base64" } : { content: f.text, encoding: "utf-8" }) });
+      entries.push({ path: f.path, mode: "100644", type: "blob", sha: blob.sha });
+    }
+    const tree = await gh.api("/git/trees", { method: "POST", body: JSON.stringify({ base_tree: head.treeSha, tree: entries }) });
+    const commit = await gh.api("/git/commits", { method: "POST", body: JSON.stringify({ message, tree: tree.sha, parents: [head.commitSha] }) });
+    await gh.api(`/git/refs/heads/${gh.branch()}`, { method: "PATCH", body: JSON.stringify({ sha: commit.sha }) });
+  },
+};
+
+/* ---------- data files ---------- */
+function parseItems(text, varName) {
+  const m = text.match(new RegExp(`window\\.${varName}\\s*=\\s*(\\[[\\s\\S]*\\]);\\s*$`));
+  if (!m) throw new Error("无法读取数据文件格式。");
+  return JSON.parse(m[1]);
+}
+function serializeItems(cfg, items, ver) {
+  return `window.${cfg.varName}_VERSION = "${ver}";\nwindow.${cfg.varName} = ${JSON.stringify(items, null, 2)};\n`;
+}
+function bumpVersion(html, param, ver) {
+  return html.replace(new RegExp(`${param.replace(".", "\\.")}\\?v=[^"']+`, "g"), `${param}?v=${ver}`);
+}
+// Build the file changes for a modified list (add/remove) on a given head.
+async function buildDataFiles(kind, head, mutate) {
+  const cfg = CFG[kind], ver = stamp();
+  const items = parseItems(await gh.readText(cfg.file, head.commitSha), cfg.varName);
+  const next = mutate(items);
+  const files = [{ path: cfg.file, text: serializeItems(cfg, next, ver) }];
+  for (const page of ["index.html", "composition.html"]) {
+    let html; try { html = await gh.readText(page, head.commitSha); } catch { continue; }
+    const updated = bumpVersion(html, cfg.param, ver);
+    if (updated !== html) files.push({ path: page, text: updated });
+  }
+  return { files, items: next };
+}
+
+/* ---------- image handling ---------- */
+async function loadCanvas(file, maxSide) {
+  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close?.();
+  return c;
+}
+function rotateCanvas(c, deg) {
+  const r = document.createElement("canvas");
+  const swap = deg % 180 !== 0;
+  r.width = swap ? c.height : c.width; r.height = swap ? c.width : c.height;
+  const ctx = r.getContext("2d");
+  ctx.translate(r.width / 2, r.height / 2); ctx.rotate(deg * Math.PI / 180);
+  ctx.drawImage(c, -c.width / 2, -c.height / 2);
+  return r;
+}
+function stitchCanvases(list, maxWidth = 1800) {
+  const width = Math.min(maxWidth, ...list.map((c) => c.width));
+  const heights = list.map((c) => Math.round(c.height * width / c.width));
+  const out = document.createElement("canvas");
+  out.width = width; out.height = heights.reduce((a, b) => a + b, 0);
+  const ctx = out.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, out.width, out.height);
+  let y = 0; list.forEach((c, i) => { ctx.drawImage(c, 0, y, width, heights[i]); y += heights[i]; });
+  return out;
+}
+const toBase64Jpeg = (canvas, q = 0.86) => new Promise((res, rej) => canvas.toBlob((b) => {
+  if (!b) return rej(new Error("图片编码失败"));
+  const r = new FileReader(); r.onload = () => res(r.result.split(",")[1]); r.readAsDataURL(b);
+}, "image/jpeg", q));
+
+/* ---------- photo list widget ---------- */
+function photoList(container, multi) {
+  const photos = []; // {canvas}
+  const render = () => {
+    container.innerHTML = "";
+    photos.forEach((p, i) => {
+      const box = document.createElement("div"); box.className = "photo";
+      const thumb = document.createElement("canvas"); thumb.width = p.canvas.width; thumb.height = p.canvas.height;
+      thumb.getContext("2d").drawImage(p.canvas, 0, 0);
+      const btns = document.createElement("div"); btns.className = "btns";
+      const add = (t, fn, cls = "") => { const b = document.createElement("button"); b.textContent = t; b.className = cls; b.onclick = fn; btns.append(b); };
+      if (multi) { add("↑", () => move(i, -1)); add("↓", () => move(i, 1)); }
+      add("↻", () => { p.canvas = rotateCanvas(p.canvas, 90); render(); });
+      add("↺", () => { p.canvas = rotateCanvas(p.canvas, 270); render(); });
+      add("删", () => { photos.splice(i, 1); render(); }, "danger");
+      const label = document.createElement("small"); label.textContent = multi ? `第 ${i + 1} 张` : "";
+      box.append(thumb, label, btns); container.append(box);
+    });
+  };
+  const move = (i, d) => { const j = i + d; if (j < 0 || j >= photos.length) return; [photos[i], photos[j]] = [photos[j], photos[i]]; render(); };
+  return {
+    photos,
+    async addFiles(files, maxSide) {
+      for (const f of files) photos.push({ canvas: await loadCanvas(f, maxSide) });
+      render();
+    },
+    clear() { photos.length = 0; render(); },
+  };
+}
+const compList = photoList($("#comp-photos"), true);
+const artList = photoList($("#art-photos"), false);
+
+/* ---------- publish ---------- */
+let busy = false;
+async function guarded(fn) {
+  if (busy) return; busy = true;
+  document.querySelectorAll("button").forEach((b) => b.disabled = true);
+  try { await fn(); } catch (e) { console.error(e); status(e.message || String(e), "err"); }
+  finally { busy = false; document.querySelectorAll("button").forEach((b) => b.disabled = false); }
+}
+
+async function publish(kind) {
+  const isComp = kind === "comp", cfg = CFG[kind];
+  const list = isComp ? compList : artList;
+  const title = $(isComp ? "#comp-title" : "#art-title").value.trim();
+  const date = $(isComp ? "#comp-date" : "#art-date").value || today();
+  const summaryIn = $(isComp ? "#comp-summary" : "#art-summary").value.trim();
+  if (!list.photos.length) throw new Error(isComp ? "请先添加作文照片。" : "请先选择画作图片。");
+  if (isComp && list.photos.length < 2 && !confirm("只有一张照片，确定发布吗？")) return;
+  if (!title) throw new Error("请填写标题。");
+
+  status("正在处理图片……");
+  const canvas = isComp ? stitchCanvases(list.photos.map((p) => p.canvas)) : list.photos[0].canvas;
+  const base64 = await toBase64Jpeg(canvas);
+  const slug = `${cfg.prefix}-${date}-${rand8()}`;
+  const imagePath = `${cfg.dir}/${slug}.jpg`;
+  const summary = summaryIn || (isComp ? "点击进入详情页，查看完整作文。" : `Claire 的画作《${title}》。`);
+
+  status("正在上传到 GitHub……");
+  const head = await gh.head();
+  const { files } = await buildDataFiles(kind, head, (items) => [{ slug, title, date, summary, image: imagePath }, ...items]);
+  files.push({ path: imagePath, base64 });
+  await gh.commit(head, files, `Publish ${isComp ? "composition" : "artwork"}: ${title}`);
+  list.clear();
+  for (const id of isComp ? ["#comp-title", "#comp-summary"] : ["#art-title", "#art-summary"]) $(id).value = "";
+  status(`✅ 已发布《${title}》，约 1 分钟后网站更新。`, "ok");
+}
+
+/* ---------- manage ---------- */
+async function loadManage() {
+  status("正在读取已发布内容……");
+  const head = await gh.head();
+  for (const kind of ["comp", "art"]) {
+    const cfg = CFG[kind], box = $(kind === "comp" ? "#list-comp" : "#list-art");
+    const items = parseItems(await gh.readText(cfg.file, head.commitSha), cfg.varName);
+    box.innerHTML = items.length ? "" : '<p class="hint">暂无内容</p>';
+    for (const it of items) {
+      const row = document.createElement("div"); row.className = "item";
+      const img = document.createElement("img"); img.src = `../${it.image}`; img.loading = "lazy"; img.alt = "";
+      const info = document.createElement("div");
+      const t = document.createElement("strong"); t.textContent = it.title;
+      const s = document.createElement("small"); s.textContent = it.date;
+      info.append(t, document.createElement("br"), s);
+      const del = document.createElement("button"); del.className = "danger"; del.textContent = "删除";
+      del.onclick = () => guarded(() => remove(kind, it));
+      row.append(img, info, del); box.append(row);
+    }
+  }
+  status("");
+}
+async function remove(kind, item) {
+  if (!confirm(`确定删除《${item.title}》吗？`)) return;
+  const cfg = CFG[kind];
+  status("正在删除……");
+  const head = await gh.head();
+  const { files } = await buildDataFiles(kind, head, (items) => items.filter((x) => x.slug !== item.slug));
+  const tree = await gh.listTree(head.treeSha);
+  tree.filter((n) => n.type === "blob" && n.path.startsWith(`${cfg.dir}/${item.slug}`))
+      .forEach((n) => files.push({ path: n.path, delete: true }));
+  await gh.commit(head, files, `Delete ${cfg.label}: ${item.title}`);
+  await loadManage();
+  status(`✅ 已删除《${item.title}》。`, "ok");
+}
+
+/* ---------- wiring ---------- */
+function showApp(on) {
+  $("#app").classList.toggle("hidden", !on);
+  $("#logout").classList.toggle("hidden", !on);
+  $("#login-card").classList.toggle("hidden", on);
+}
+$("#repo").value = LS.get("gh_repo", "zj05409/Claire");
+$("#branch").value = LS.get("gh_branch", "main");
+$("#comp-date").value = $("#art-date").value = today();
+if (LS.get("gh_token")) showApp(true);
+
+$("#save-token").onclick = () => guarded(async () => {
+  const token = $("#token").value.trim();
+  if (!token) throw new Error("请粘贴 Token。");
+  LS.set("gh_token", token); LS.set("gh_repo", $("#repo").value.trim()); LS.set("gh_branch", $("#branch").value.trim());
+  try { await gh.head(); } catch (e) { LS.del("gh_token"); throw e; }
+  $("#token").value = ""; showApp(true); status("✅ 已连接。", "ok");
+});
+$("#logout").onclick = () => { LS.del("gh_token"); showApp(false); status(""); };
+
+document.querySelectorAll(".tabs button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("active", x === b));
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("hidden", t.id !== `tab-${b.dataset.tab}`));
+  if (b.dataset.tab === "manage") guarded(loadManage);
+});
+const addFiles = (list, max) => (e) => guarded(async () => { status("正在读取图片……"); await list.addFiles(e.target.files, max); e.target.value = ""; status(""); });
+$("#comp-files").onchange = addFiles(compList, 2400);
+$("#comp-camera").onchange = addFiles(compList, 2400);
+$("#comp-cam-btn").onclick = () => $("#comp-camera").click();
+$("#art-file").onchange = (e) => guarded(async () => { artList.clear(); await artList.addFiles(e.target.files, 2400); e.target.value = ""; });
+$("#art-camera").onchange = (e) => guarded(async () => { artList.clear(); await artList.addFiles(e.target.files, 2400); e.target.value = ""; });
+$("#art-cam-btn").onclick = () => $("#art-camera").click();
+$("#comp-publish").onclick = () => guarded(() => publish("comp"));
+$("#art-publish").onclick = () => guarded(() => publish("art"));
+</script>
+</body>
+</html>
